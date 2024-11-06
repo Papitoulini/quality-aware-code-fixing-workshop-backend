@@ -1,9 +1,9 @@
 /* eslint-disable security/detect-non-literal-fs-filename */
 import fs from "fs/promises";
 
-const margin = 5; // Define the margin for extra lines
+const margin = 5; // Default margin for extra lines
 
-// Get Code Section Operation with margin
+// Get Code Section Operation with margin and location of exact requested part
 const getCodeSection = async (absolutePath, startLine, endLine) => {
 	try {
 		if (absolutePath) {
@@ -11,19 +11,29 @@ const getCodeSection = async (absolutePath, startLine, endLine) => {
 			const lines = data.split(/\r?\n/);
 
 			// Calculate start and end lines with margin
-			const adjustedStartLine = Math.max(0, startLine - margin - 1);
-			const adjustedEndLine = Math.min(lines.length, endLine + margin);
+			const adjustedStartLine = Math.max(0, startLine - margin - 1); // Start of context section
+			const adjustedEndLine = Math.min(lines.length, endLine + margin); // End of context section
 
-			const selectedLines = lines.slice(adjustedStartLine, adjustedEndLine);
+			// Get full section with margin
+			const fullSection = lines.slice(adjustedStartLine, adjustedEndLine).join("\n");
+			// const actualPart = lines.slice(startLine, endLine).join("\n");
+
+			// Calculate position of the requested lines within the full section
+			const relativeStartLine = startLine - adjustedStartLine; // Start of requested part within the full section
+			const relativeEndLine = endLine - adjustedStartLine; // End of requested part within the full section
+
 			console.group("Retrieved Code Section:");
-			console.log("Start_line:", adjustedStartLine + 1, selectedLines[0]);
-			console.log("End_line :", adjustedEndLine, selectedLines[selectedLines.length - 1]);
+			console.log("Full Section Start Line:", adjustedStartLine + 1, lines[adjustedStartLine]);
+			console.log("Full Section End Line:", adjustedEndLine, lines[adjustedEndLine - 1]);
+			console.log("Requested Section Relative Start Line:", relativeStartLine + 1);
+			console.log("Requested Section Relative End Line:", relativeEndLine);
 			console.groupEnd();
 
 			return {
-				part: selectedLines.join("\n"),
-				startLine: adjustedStartLine + 1,
-				endLine: adjustedEndLine,
+				// actualPart,
+				part: fullSection, // Full code with margin
+				requestedStart: relativeStartLine + 1, // Start of requested lines within full section
+				requestedEnd: relativeEndLine, // End of requested lines within full section
 			};
 		}
 
