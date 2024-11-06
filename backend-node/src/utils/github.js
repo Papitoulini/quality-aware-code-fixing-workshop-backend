@@ -1,6 +1,3 @@
-// Github.js
-import path from "path";
-
 import { Octokit } from "octokit";
 import { throttling } from "@octokit/plugin-throttling";
 import { retry } from "@octokit/plugin-retry";

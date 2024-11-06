@@ -10,10 +10,14 @@ const { Analysis, Commit } = models;
 
 const language = "JavaScript";
 
+const { GITHUB_TOKEN } = process.env;
+
 const analyzer = async (_, __, sha) => {
+	const token = GITHUB_TOKEN;
 	const {
 		_id: commitId,
-		repositories: [{ owner, name, productionBranch, addedBy: { _id: userId, github: { token }, username } }],
+		// repositories: [{ owner, name, productionBranch, addedBy: { _id: userId, github: { token }, username } }],
+		repositories: [{ owner, name, productionBranch, addedBy: { _id: userId, username } }],
 		hash,
 		files: [file],
 	} = await Commit.findOne({ hash: sha })
@@ -24,12 +28,16 @@ const analyzer = async (_, __, sha) => {
 		})
 		.select("_id files hash createdAt") // Selecting top-level fields
 		.lean();
+
+	console.group("General Info:");
 	console.log("commitID", commitId);
 	console.log("owner", owner);
 	console.log("name", name);
 	console.log("hash", hash);
 	console.log("userId", userId);
 	console.log("username", username);
+	console.groupEnd();
+
 	const analysis = await Analysis.findOne({ commit: commitId, language }).lean();
 	const [
 		{ content: clones },
@@ -44,19 +52,19 @@ const analyzer = async (_, __, sha) => {
 	const authUrl = constructAuthUrl(token, owner, name);
 	const localPath = path.resolve("tmp", analysis.internalId);
 	const localRepoPath = path.resolve(localPath, name);
-
 	const findingsPath = path.resolve(localPath, "findings.json");
 
-	const github = Github(token, authUrl);
-
-	if (fs.existsSync(localRepoPath)) {
-		console.log("Repo already exists");
-	} else {
-		await github.gitClone(productionBranch);
-	}
-
-	fs.writeFileSync(findingsPath, JSON.stringify({ analysis, clones, vulnerabilities, analysisResults }, null, 2));
+	console.group("Contracted Paths:");
 	console.log("authUrl", authUrl);
+	console.log("localPath", localPath);
+	console.log("localRepoPath", localRepoPath);
+	console.log("findingsPath", findingsPath);
+	console.groupEnd();
+
+	const github = Github(token, authUrl, localRepoPath);
+
+	if (!fs.existsSync(localRepoPath)) await github.gitClone(productionBranch);
+	fs.writeFileSync(findingsPath, JSON.stringify({ analysis, clones, vulnerabilities, analysisResults }, null, 2));
 	const absolutePath = path.resolve(localRepoPath, file.filename);
 	const part = await getCodeSection(absolutePath, 1, 5);
 

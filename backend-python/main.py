@@ -4,6 +4,7 @@ from llm.LLM import LLMHandler
 import os
 from dotenv import load_dotenv
 import requests
+from llm.aws_login.login import login_to_aws_sso
 
 load_dotenv()
 
@@ -23,4 +24,6 @@ def send_message():
     return jsonify({'response': response}), 200
 
 if __name__ == '__main__':
+    print(os.environ.get("AWS_SSO_USERNAME"))
+    login_to_aws_sso(os.environ.get("AWS_SSO_USERNAME"), os.environ.get("AWS_SSO_PASSWORD"))
     app.run(host='0.0.0.0', port=5000, debug=True)

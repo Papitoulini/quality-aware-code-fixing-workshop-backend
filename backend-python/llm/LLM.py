@@ -3,7 +3,6 @@ import json
 import boto3 # type: ignore
 from openai import OpenAI # type: ignore
 from dotenv import load_dotenv # type: ignore
-from .aws_login.login import login_to_aws_sso
 
 load_dotenv()
 
@@ -38,8 +37,6 @@ class LLMHandler:
         self.claude_client = boto3.client(service_name="bedrock-runtime", region_name="us-east-1")
         self.claude_model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
 
-        print(os.environ.get("AWS_SSO_USERNAME"), os.environ.get("AWS_SSO_PASSWORD"))
-        login_to_aws_sso(os.environ.get("AWS_SSO_USERNAME"), os.environ.get("AWS_SSO_PASSWORD"))
     def send_message(self, messages):
         formatted_messages = self._format_messages(messages)
         response = self.model_apis[self.model](formatted_messages)
