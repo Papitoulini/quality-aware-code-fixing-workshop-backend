@@ -14,11 +14,12 @@ app = Flask(__name__)
 def send_message():
     data = request.json
     messages = data.get('messages')
+    model = data.get('model')
     
     if not messages:
         return jsonify({'error': 'No message provided'}), 400
 
-    handler = LLMHandler('claude')
+    handler = LLMHandler(model)
     response = handler.send_message(messages)
     print(response)
     return jsonify({'response': response}), 200
