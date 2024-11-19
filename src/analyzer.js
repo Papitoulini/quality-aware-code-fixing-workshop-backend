@@ -65,36 +65,36 @@ const analyzer = async (_, __, sha) => {
 
 	if (!fs.existsSync(localRepoPath)) await github.gitClone(productionBranch);
 	fs.writeFileSync(findingsPath, JSON.stringify({ analysis, clones, vulnerabilities, analysisResults }, null, 2));
-	const absolutePath = path.resolve(localRepoPath, file.filename);
-	const part = await getCodeSection(absolutePath, 1, 5);
+	// const absolutePath = path.resolve(localRepoPath, file.filename);
+	// const part = await getCodeSection(absolutePath, 1, 5);
 
-	const messages = [
-		{ role: "user", message: "Hello, my name is george how are you?" },
-		{ role: "assistant", message: "I'm fine, thank you." },
-		{ role: "user", message: "What's the weather like today?" },
-	];
+	// const messages = [
+	// 	{ role: "user", message: "Hello, my name is george how are you?" },
+	// 	{ role: "assistant", message: "I'm fine, thank you." },
+	// 	{ role: "user", message: "What's the weather like today?" },
+	// ];
 
-	const pythonBackend = await PythonBackend();
-	const { body: unparsedResponse } = await pythonBackend.post("send_message", {
-		json: { messages },
-	});
+	// const pythonBackend = await PythonBackend();
+	// const { body: unparsedResponse } = await pythonBackend.post("send_message", {
+	// 	json: { messages },
+	// });
 
-	const { response: chatResponse } = JSON.parse(unparsedResponse);
+	// const { response: chatResponse } = JSON.parse(unparsedResponse);
 
-	console.log(chatResponse);
+	// console.log(chatResponse);
 
-	messages.push({ role: "assistant", message: chatResponse });
-	messages.push({ role: "user", message: "What is my name?" });
-	// const mes
+	// messages.push({ role: "assistant", message: chatResponse });
+	// messages.push({ role: "user", message: "What is my name?" });
+	// // const mes
 
-	const { body: unparsedResponse1 } = await pythonBackend.post("send_message", {
-		json: { messages },
-	});
+	// const { body: unparsedResponse1 } = await pythonBackend.post("send_message", {
+	// 	json: { messages },
+	// });
 
-	const { response: chatResponse1 } = JSON.parse(unparsedResponse1);
+	// const { response: chatResponse1 } = JSON.parse(unparsedResponse1);
 
-	console.log("part", part);
-	console.log(chatResponse1);
+	// console.log("part", part);
+	// console.log(chatResponse1);
 
 	return analysis;
 };

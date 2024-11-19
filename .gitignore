@@ -90,7 +90,7 @@ typings/
 .npmrc
 
 # Test files
-*/server-test-*
+*/server-test*
 /server-test/
 
 # Ignore generated credentials from google-github-actions/auth
