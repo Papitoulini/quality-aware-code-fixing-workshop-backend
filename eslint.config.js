@@ -115,7 +115,6 @@ const mainConfig = {
 			navigator: "readonly",
 			requestAnimationFrame: "writable",
 			caches: "writable",
-			clearTimeout: "writable",
 		},
 	},
 	plugins: pluginsMap,
