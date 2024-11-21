@@ -22,7 +22,7 @@ export const generateMarkdownTree = (dirPath, prefix = "", ignorePatterns = defa
 	if (shouldIgnore(dirPath, ignorePatterns)) return null;
 	const items = fs.readdirSync(dirPath, { withFileTypes: true });
 
-	items.forEach((item, index) => {
+	for (const [index, item] of items.entries()) {
 		const isLastItem = index === items.length - 1;
 		const connector = isLastItem ? "└── " : "├── ";
 		const itemName = item.name;
@@ -36,7 +36,7 @@ export const generateMarkdownTree = (dirPath, prefix = "", ignorePatterns = defa
 		// Add file name
 			markdown += `${prefix}${connector}${itemName}\n`;
 		}
-	});
+	}
 
 	return markdown;
 };

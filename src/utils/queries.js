@@ -1,45 +1,67 @@
-export const prompt1 = (code, findings, suggestions) => `
-The following code has been identified with high cyclomatic complexity and duplicate code segments. 
-Please refactor it to improve maintainability and reduce complexity while retaining the original functionality.
+const fixTheClone = (codeTree, clones, language) => `
+I have identified several code snippets in my project that are similar but differ slightly.
+I want to refactor these snippets to eliminate duplication by creating reusable functions or components.
+Please help me determine where the new code should be implemented and what changes should be made in the target files to achieve this.
 
-Original Code:
-${code}
+**Project Code Tree:**
+\`\`\`markdown
+${codeTree}
+\`\`\`
 
-Identified Issues:
-- Cyclomatic Complexity: {complexity_score}
-- Duplicated Code: {duplicate_score}
+---
 
-Refactor the code to:
-${findings}
-
-Suggested Fix:
-${suggestions}
+**Duplicated Code Snippets:**
+${clones.map((cl) => {
+		const {
+			filePath,
+			codePart: { part, requestedStart, requestedEnd },
+		} = cl;
+		return `
+**File Path:** ${filePath}
+**Starting Line:** ${requestedStart}
+**Ending Line:** ${requestedEnd}
+\`\`\`${language}
+${part}
+\`\`\`
+`;
+	}).join("\n")}
 `;
 
-export const prompt2 = (code, vulnerabilityFix) => `
-prompt_template = """
-The following code contains a security vulnerability: {vulnerability_type}.
-The identified issue is described below with the original code and suggestions for how to improve it.
+export const canYouUnderstandTheTree = (codeTree, language) => `
+I need your assistance to assess the following project code tree.
+Plz **DO NOT** explain anything just try to give a response based on the follow format
+**specified** inside the **Tasks** section.
 
-Vulnerability Description: {vulnerability_description}
+**Project Language:** ${language}
 
-Original Code:
-${code}
+**Project Code Tree:**
+\`\`\`markdown
+${codeTree}
+\`\`\`
 
-Suggested Fix:
-- Ensure ${vulnerabilityFix}
+---
+
+**Tasks:**
+
+1. **Understanding Assessment:**
+   - On a scale of **0 to 10**, how well can you understand the provided code tree?
+
+2. **Confidence in Refactoring:**
+   - On a scale of **0 to 10**, how confident are you in proceeding with fixing code duplications within this project?
+
+**Please provide your responses in the following JSON format:**
+
+\`\`\`json
+{
+    "understandingScore": <number>,
+    "confidenceScore": <number>
+}
+\`\`\`
 `;
 
-export const prompt3 = (code, vulnerabilityFix) => `
-prompt_template = """
-The following code contains a security vulnerability: {vulnerability_type}.
-The identified issue is described below with the original code and suggestions for how to improve it.
+const queries = {
+	fixTheClone,
+	canYouUnderstandTheTree,
+};
 
-Vulnerability Description: {vulnerability_description}
-
-Original Code:
-${code}
-
-Suggested Fix:
-- Ensure ${vulnerabilityFix}
-`;
+export default queries;

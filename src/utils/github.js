@@ -20,6 +20,8 @@ const logger = winston.createLogger({
 // Create a custom Octokit class with the Throttling and Retry plugins
 const MyOctokit = Octokit.plugin(throttling, retry);
 
+const git = (repoPath) => simpleGit(repoPath);
+
 const Github = (auth, authenticatedUrl, clonePath) => {
 	const octokit = new MyOctokit({
 		auth,
@@ -61,8 +63,6 @@ const Github = (auth, authenticatedUrl, clonePath) => {
 	const paginate = octokit.paginate;	// Pagination helper
 
 	// Initialize simple-git with the repository path
-	const git = (repoPath) => simpleGit(repoPath);
-
 	// Git Operations using simple-git
 	const gitClone = async (branch = "main") => {
 		try {
@@ -80,7 +80,7 @@ const Github = (auth, authenticatedUrl, clonePath) => {
 
 			// Remove existing 'origin-auth' remote if it exists to avoid duplicates
 			const remotes = await gitInstance.getRemotes(true);
-			if (remotes.find((remote) => remote.name === "origin-auth")) {
+			if (remotes.some((remote) => remote.name === "origin-auth")) {
 				await gitInstance.removeRemote("origin-auth");
 			}
 

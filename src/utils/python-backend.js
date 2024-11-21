@@ -1,7 +1,7 @@
 import got from "got";
 
 const PythonBackend = () => {
-	const { PYTHON_API_URL, PYTHON_API_KEY } = process.env;
+	const { PYTHON_API_URL } = process.env;
 
 	return got.extend({
 		// http2: true,

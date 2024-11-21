@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename */
-import fs from "fs/promises";
+import fs from "node:fs/promises";
 
 const margin = 5; // Default margin for extra lines
 
@@ -7,7 +7,7 @@ const margin = 5; // Default margin for extra lines
 const getCodeSection = async (absolutePath, startLine, endLine) => {
 	try {
 		if (absolutePath) {
-			const data = await fs.readFile(absolutePath, "utf-8");
+			const data = await fs.readFile(absolutePath, "utf8");
 			const lines = data.split(/\r?\n/);
 
 			// Calculate start and end lines with margin

@@ -10,8 +10,6 @@ const { Analysis } = models;
 
 const { GOOGLE_CLOUD_PROJECT_ID, GOOGLE_CLOUD_ENVIRONMENT, GOOGLE_CLOUD_CLIENT_EMAIL, GOOGLE_CLOUD_PRIVATE_KEY } = process.env;
 
-console.log(GOOGLE_CLOUD_PRIVATE_KEY);
-
 export const storage = new Storage({
 	credentials: {
 		private_key: String(Buffer.from(GOOGLE_CLOUD_PRIVATE_KEY, "base64")),

@@ -54,7 +54,7 @@
     "eslint-plugin-unicorn": "^55.0.0",
     "express": "^5.0.0",
     "globals": "^15.10.0",
-    "got": "^14.4.2",
+    "got": "^14.4.4",
     "helmet": "^8.0.0",
     "mongoose": "^8.7.0",
     "mongoose-lean-defaults": "^2.2.1",
