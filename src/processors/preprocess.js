@@ -27,7 +27,7 @@ const preprocess = async (sha) => {
 			.select("_id files createdAt") // Selecting top-level fields
 			.lean();
 
-		logger.info(`General Info: ${JSON.stringify({commitId, owner, name, sha, userId, username})}`);
+		logger.info(`General Info: ${JSON.stringify({commitId, owner, name, sha, userId, username}, null, 2)}`);
 
 		const analysis = await Analysis.findOne({ commit: commitId, language, pending: true }).lean();
 
@@ -38,7 +38,7 @@ const preprocess = async (sha) => {
 
 		const repoPaths = [localRepoPath, findingsPath];
 
-		logger.info(`Contracted Paths: ${JSON.stringify({authUrl, localPath, repoPaths})}`);
+		logger.info(`Contracted Paths: ${JSON.stringify({authUrl, localPath, repoPaths}, null, 2)}`);
 
 		const github = Github(token, authUrl, localRepoPath);
 
@@ -66,7 +66,7 @@ const preprocess = async (sha) => {
 		}
 
 		const githubOptions = { owner, repo: name, token, authUrl, productionBranch }
-		logger.info(`Contracted Paths: ${JSON.stringify({githubOptions})}`);
+		logger.info(`Github Options: ${JSON.stringify(githubOptions, null, 2)}`);
 
 		return { repoPaths, githubOptions }
 	} catch (error) {

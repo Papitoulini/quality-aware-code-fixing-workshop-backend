@@ -10,5 +10,5 @@ export { default as groupLines } from "./group-lines.js";
 export { default as groupFiles } from "./group-files.js";
 export * from "./generate-code-tree.js";
 export const MODEL = "claude";
-export const MAX_SNIPPET_LINES = 60;
+export const MAX_SNIPPET_LINES = 100;
 export const MAX_HTTP_REQUEST_CHARS = 12_000;
