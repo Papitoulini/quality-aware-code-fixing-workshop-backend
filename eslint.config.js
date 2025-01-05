@@ -88,7 +88,7 @@ const combinedRules = {
 // Define the main configuration
 const mainConfig = {
 	files: ["**/*.js", "**/*.cjs", "**/*.mjs"],
-	ignores: ["node_modules/", "tmp/**", "**/doc/**", "server-test**"],
+	ignores: ["node_modules/", "tmp/**", "**/doc/**"],
 	languageOptions: {
 		parserOptions: {
 			ecmaVersion: 2022, // Adjust based on your project's needs

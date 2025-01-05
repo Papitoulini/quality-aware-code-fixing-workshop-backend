@@ -9,7 +9,6 @@ import { models } from "#dbs";
 const { Analysis } = models;
 
 const { GOOGLE_CLOUD_PROJECT_ID, GOOGLE_CLOUD_ENVIRONMENT, GOOGLE_CLOUD_CLIENT_EMAIL, GOOGLE_CLOUD_PRIVATE_KEY } = process.env;
-
 export const storage = new Storage({
 	credentials: {
 		private_key: String(Buffer.from(GOOGLE_CLOUD_PRIVATE_KEY, "base64")),
@@ -58,7 +57,9 @@ export const getCloudAnalysis = async (dbAnalysis, options) => {
 	} catch (error) { console.log(error); return null; }
 };
 
-export const getAnalysisFolderFile = async (dbAnalysis, fileName) => {
+export const getAnalysisFolderFile = async (dbAnalysis, fileName, options) => {
+	const ignoreInternalId = options?.ignoreInternalId;
+
 	const file = {
 		path: null,
 		content: (fileName.endsWith(".txt")) ? ""
@@ -70,7 +71,7 @@ export const getAnalysisFolderFile = async (dbAnalysis, fileName) => {
 			? await Analysis.findById(dbAnalysis).lean().exec()
 			: dbAnalysis;
 
-		const analysisPath = generateAnalysisCloudPath(analysis);
+		const analysisPath = generateAnalysisCloudPath(analysis, fileName, !ignoreInternalId);
 		const [files] = await storage.bucket("cyclopt-platform").getFiles({ prefix: analysisPath });
 		file.path = files.find((f) => f?.name?.endsWith(fileName))?.name;
 

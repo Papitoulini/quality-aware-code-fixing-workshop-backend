@@ -8,9 +8,8 @@
   "description": "",
   "type": "module",
   "imports": {
-    "#utils": "./src/utils/index.js",
+    "#utils": "./src/processors/common/utilities/index.js",
     "#middleware": "./src/middleware/index.js",
-    "#analyzer": "./src/analyzer.js",
     "#dbs": "./src/dbs.js"
   },
   "scripts": {
@@ -33,6 +32,7 @@
   },
   "prettier": "@iamnapo/prettier-config",
   "dependencies": {
+    "@cyclopt/violations": "^0.3.3",
     "@eslint/eslintrc": "^3.1.0",
     "@google-cloud/storage": "^7.13.0",
     "@iamnapo/construct-url": "^3.0.2",

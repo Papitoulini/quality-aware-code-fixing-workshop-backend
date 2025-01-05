@@ -28,8 +28,6 @@ export const init = async (cluster_, dbName_) => {
 
 	mongoose.set("strictQuery", false);
 
-	console.log(clusterUri, dbName);
-
 	try {
 		return await mongoose.connect(clusterUri, { dbName });
 	} catch (error_) {
