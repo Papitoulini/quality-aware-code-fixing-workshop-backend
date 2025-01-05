@@ -5,17 +5,12 @@ import "dotenv/config.js";
 
 import { processViolations } from "./violations/index.js"; 
 import { Github } from "#utils";
+import { logger } from "#logger";
 
 const runViolations = async (repoPaths, githubOptions) => {
 	try {
-		const {
-			token,
-			authUrl,
-			productionBranch,
-		} = githubOptions;
-
+		const { token, authUrl, productionBranch } = githubOptions;
 		const newBranch = "violations-fixes";
-
 		const [localRepoPath, findingsPath] = repoPaths;
 
 		const analysisFindingsPath = path.resolve(findingsPath, "analysis.json");
@@ -40,7 +35,9 @@ const runViolations = async (repoPaths, githubOptions) => {
 
 			await gitInstance.afterProcess(violationsGithubOptions);
 		} else {
-			console.log("No files changed - skipping PR creation.");
+			logger.info("========= Info =========");
+			logger.info("No files changed - skipping PR creation.");
+			logger.info("========================");
 		}
 	} catch (error) {
 		console.log(error);

@@ -5,86 +5,74 @@ import path from "node:path";
 
 import { models } from "#dbs";
 import { getAnalysisFolderFile, getCloudAnalysis, constructAuthUrl, Github } from "#utils";
+import { logger } from "#logger";
 
 const { Analysis, Commit } = models;
 
 const { GITHUB_TOKEN } = process.env;
 
 const preprocess = async (sha) => {
+	try {
+		const token = GITHUB_TOKEN;
+		const {
+			_id: commitId,
+			// repositories: [{ owner, name, productionBranch, addedBy: { _id: userId, github: { token }, username } }],
+			repositories: [{ owner, name, productionBranch, addedBy: { _id: userId, username }, language }],
+		} = await Commit.findOne({ hash: sha })
+			.populate({
+				path: "repositories",
+				select: "owner name providerId addedBy productionBranch language",
+				populate: { path: "addedBy", model: "User", select: "_id username github" },
+			})
+			.select("_id files createdAt") // Selecting top-level fields
+			.lean();
 
-	const token = GITHUB_TOKEN;
-	const {
-		_id: commitId,
-		// repositories: [{ owner, name, productionBranch, addedBy: { _id: userId, github: { token }, username } }],
-		repositories: [{ owner, name, productionBranch, addedBy: { _id: userId, username }, language }],
-	} = await Commit.findOne({ hash: sha })
-		.populate({
-			path: "repositories",
-			select: "owner name providerId addedBy productionBranch language",
-			populate: { path: "addedBy", model: "User", select: "_id username github" },
-		})
-		.select("_id files createdAt") // Selecting top-level fields
-		.lean();
+		logger.info({ message: "General Info", commitId, owner, name, sha, userId, username });
 
-	console.group("General Info:");
-	console.log("commitID", commitId);
-	console.log("owner", owner);
-	console.log("name", name);
-	console.log("hash", sha);
-	console.log("userId", userId);
-	console.log("username", username);
-	console.groupEnd();
+		const analysis = await Analysis.findOne({ commit: commitId, language, pending: true }).lean();
 
-	const analysis = await Analysis.findOne({ commit: commitId, language, pending: true }).lean();
+		const authUrl = constructAuthUrl(token, owner, name);
+		const localPath = path.resolve("tmp", analysis.internalId);
+		const localRepoPath = path.resolve(localPath, name);
+		const findingsPath = path.resolve(localPath, "findings");
 
-	const authUrl = constructAuthUrl(token, owner, name);
-	const localPath = path.resolve("tmp", analysis.internalId);
-	const localRepoPath = path.resolve(localPath, name);
-	const findingsPath = path.resolve(localPath, "findings");
+		const repoPaths = [localRepoPath, findingsPath];
 
-	const repoPaths = [localRepoPath, findingsPath];
+		logger.info({ message: "Contracted Paths:", authUrl, localPath, repoPaths });
 
-	console.group("Contracted Paths:");
-	console.log("authUrl", authUrl);
-	console.log("localPath", localPath);
-	console.log("repoPaths", repoPaths);
-	console.groupEnd();
+		const github = Github(token, authUrl, localRepoPath);
 
-	const github = Github(token, authUrl, localRepoPath);
+		if (!fs.existsSync(localRepoPath)) await github.cloneRepo(productionBranch);
 
-	if (!fs.existsSync(localRepoPath)) await github.cloneRepo(productionBranch);
+		if (!fs.existsSync(findingsPath))  {
+			fs.mkdirSync(findingsPath);
+			const [
+				{ content: clones },
+				{ content: { findings: vulnerabilities } },
+				{ content: { sast } },
+				analysisResults,
+			] = await Promise.all([
+				getAnalysisFolderFile(analysis, "clones.json"),
+				getAnalysisFolderFile(analysis, "vulnerabilities.json"),
+				getAnalysisFolderFile(analysis, "sast.json", { ignoreInternalId: true }),
+				getCloudAnalysis(analysis, { isMaintainabilityPal: true, violations: true }),
+			]);
 
-	if (!fs.existsSync(findingsPath))  {
-		fs.mkdirSync(findingsPath);
-		const [
-			{ content: clones },
-			{ content: { findings: vulnerabilities } },
-			{ content: { sast } },
-			analysisResults,
-		] = await Promise.all([
-			getAnalysisFolderFile(analysis, "clones.json"),
-			getAnalysisFolderFile(analysis, "vulnerabilities.json"),
-			getAnalysisFolderFile(analysis, "sast.json", { ignoreInternalId: true }),
-			getCloudAnalysis(analysis, { isMaintainabilityPal: true, violations: true }),
-		]);
-		console.log(sast);
+			const findings = { analysis, clones, vulnerabilities, analysisResults, sast };
 
-		const findings = { analysis, clones, vulnerabilities, analysisResults };
-
-		for (const [key, value] of Object.entries(findings)) {
-			fs.writeFileSync(path.resolve(findingsPath, `${key}.json`), JSON.stringify(value, null, 2));
+			for (const [key, value] of Object.entries(findings)) {
+				fs.writeFileSync(path.resolve(findingsPath, `${key}.json`), JSON.stringify(value, null, 2));
+			}
 		}
-	}
 
-	const githubOptions = {
-		owner,
-		repo: name,
-		token,
-		authUrl,
-		productionBranch,
-	}
+		const githubOptions = { owner, repo: name, token, authUrl, productionBranch }
+		logger.info({ message: "Github Options:", ...githubOptions });
 
-	return { repoPaths, githubOptions }
+		return { repoPaths, githubOptions }
+	} catch (error) {
+		logger.error(`Error during preprocess: ${error.message}`);
+		throw error;
+	}
 }
 
 export default preprocess;

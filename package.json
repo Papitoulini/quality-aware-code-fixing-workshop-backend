@@ -8,9 +8,10 @@
   "description": "",
   "type": "module",
   "imports": {
-    "#utils": "./src/processors/common/utilities/index.js",
+    "#utils": "./src/utils/index.js",
     "#middleware": "./src/middleware/index.js",
-    "#dbs": "./src/dbs.js"
+    "#dbs": "./src/dbs.js",
+    "#logger": "./src/logger.js"
   },
   "scripts": {
     "dev": "nodemon server.js --inspect",

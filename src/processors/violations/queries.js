@@ -1,11 +1,4 @@
-const initConversation = () => {
-	return `
-You are a coding expert. I have encountered the following TypeScript violation
-You should follow the bellow instractions to fix it:
-`.trim();
-};
-
-const addViolationInfo = (violationProps) => {
+const initConversation = (violationProps) => {
 	const {
 		explanation,
 		category,
@@ -19,6 +12,9 @@ const addViolationInfo = (violationProps) => {
 	} = violationProps;
 		
 	return `
+You are a coding expert. I have encountered the following TypeScript violation
+You should follow the bellow instractions to fix it:
+
 - Explanation: ${explanation}
 - Category: ${category}
 - Title: ${title}
@@ -71,7 +67,6 @@ __________________________________________________
 
 const queries = {
 	initConversation,
-	addViolationInfo,
 	askToResolveViolations,
 };
 

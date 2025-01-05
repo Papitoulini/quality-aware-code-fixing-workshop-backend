@@ -34,6 +34,7 @@ const customRules = {
 				"#utils",
 				"#api",
 				"#dbs",
+				"#logger",
 				"#analyzer",
 				"#middleware",
 				"octokit",

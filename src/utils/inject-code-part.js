@@ -1,6 +1,8 @@
 /* eslint-disable security/detect-non-literal-fs-filename */
 import fs from "node:fs/promises";
 
+import { logger }  from "#logger";
+
 const margin = 5; // Default margin for extra lines
 
 /**
@@ -42,8 +44,11 @@ async function injectCodePart(absolutePath, startLine, endLine, newCode) {
 
 		return null;
 	} catch (error) {
-		console.error(`Error reading/writing code section: ${error.message}`);
-		throw error;
+		logger.error(`Error during "injecting" code section from local repo: ${error.message}`);
+		return {
+			part: null, // Full code with margin
+			offset: null, // Start of requested lines within full section
+		};
 	}
 }
 

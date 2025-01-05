@@ -2,20 +2,8 @@ import { Octokit } from "octokit";
 import { throttling } from "@octokit/plugin-throttling";
 import { retry } from "@octokit/plugin-retry";
 import simpleGit from "simple-git";
-import winston from "winston";
 
-// Configure Winston logger
-const logger = winston.createLogger({
-	level: "info",
-	format: winston.format.combine(
-		winston.format.timestamp(),
-		winston.format.printf(({ timestamp, level, message }) => `${timestamp} [${level.toUpperCase()}]: ${message}`),
-	),
-	transports: [
-		new winston.transports.File({ filename: "git-operations.log" }),
-		new winston.transports.Console(),
-	],
-});
+import { logger } from "#logger";
 
 // Create a custom Octokit class with the Throttling and Retry plugins
 const MyOctokit = Octokit.plugin(throttling, retry);
@@ -55,9 +43,16 @@ const Github = (auth, authenticatedUrl, clonePath) => {
 	// ----------------------------------------------------------------------------
 
 	const preProcess = async (productionBranch, newBranch) => {
-		const gitInstance = simpleGit(clonePath);
-		await gitInstance.checkout(productionBranch);
-		await gitInstance.checkoutLocalBranch(newBranch);
+		try {
+			// For initial clone, we do *not* pass a path because it doesn't exist yet.
+			const gitInstance = simpleGit(clonePath);
+			await gitInstance.checkout(productionBranch);
+			await gitInstance.checkoutLocalBranch(newBranch);
+			logger.info(`Successfully created branch "${newBranch}" from branch "${productionBranch}".`);
+		} catch (error) {
+			logger.error(`Error during git clone: ${error.message}`);
+			throw error;
+		}
 	};
 
 	const afterProcess = async (githubOptions) => {
@@ -76,7 +71,6 @@ const Github = (auth, authenticatedUrl, clonePath) => {
 			await gitInstance.add(filePatterns.map((f) => f.startsWith("/") ? f.slice(1) : f));
 			const commitResult = await gitInstance.commit(commitMsg);
 			logger.info(`Successfully committed changes: ${commitResult.summary}`);
-			console.log("Committed changes on new branch.");
 	
 			// Push the new branch
 			// Remove existing 'origin-auth' remote if it exists
@@ -99,8 +93,9 @@ const Github = (auth, authenticatedUrl, clonePath) => {
 				base: productionBranch, // e.g. "main"
 			});
 	
-			console.log("Pull Request created:", response.data.html_url);
+			logger.info(`Pull Request created: ${response.data.html_url}`);
 		} catch (error) {
+			logger.error(`Error during git clone: ${error.message}`);
 			throw error;
 		}
 	};
