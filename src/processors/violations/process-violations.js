@@ -26,7 +26,7 @@ const processViolations = async (violations, repositoryBasePath) => {
 		let violationsCount = 0;
 		for (const violation of enhancedViolations) {
 			violationsCount += 1;
-			logger.info(`Violation: ${violationsCount} of ${violationsCount.length}`);
+			logger.info(`Violation: ${violationsCount} of ${enhancedViolations.length}`);
 			const { files, ...restViolationProps } = violation;
 			const llm = await LLM();
 			await llm.sendMessage(queries.initConversation(restViolationProps), true);
