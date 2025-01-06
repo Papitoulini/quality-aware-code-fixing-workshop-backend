@@ -1,10 +1,9 @@
 /* eslint-disable security/detect-non-literal-fs-filename */
 import path from "node:path";
-import fs from "node:fs";
 import cycloptViolations from "../../../temp-violations.js"; // TO_DO get from cyclopt
 
 import queries from "./queries.js";
-import { getCodeSection, LLM, injectCodePart, MODEL, groupLines, groupFiles } from "#utils";
+import { getCodeSection, LLM, injectCodePart } from "#utils";
 import { logger } from "#logger";
 
 const enhanceViolations = (violations = {}) => {
@@ -12,6 +11,20 @@ const enhanceViolations = (violations = {}) => {
 		const v = cycloptViolations.find((e) => e.ruleId === id) || {};
 		return { ...data, ...v };
 	});
+}
+
+const extractSingleCodeBlockAndCheck = (response, originalSnippet) => {
+	const singleBlockRegex = /```[\dA-Za-z]*\s*[\n\r]+([\S\s]*?)```/;
+	const match = singleBlockRegex.exec(response);
+	if (!match) throw new Error("No triple-backtick code block found in LLM response");
+	// match[1] is the code snippet inside the backticks
+	const snippet = match[1].trimEnd();
+
+	const originalLineCount = originalSnippet.split(/\r?\n/).length;
+	const snippetLineCount = snippet.split(/\r?\n/).length;
+	if (originalLineCount !== snippetLineCount) throw new Error("Code lines mismatch")
+
+	return snippet;
 }
 
 const processViolations = async (violations, repositoryBasePath) => {
@@ -23,59 +36,44 @@ const processViolations = async (violations, repositoryBasePath) => {
 		const enhancedViolations = enhanceViolations(violations);
 
 		// Iterate over each violation
-		let violationsCount = 0;
+		let violationsTypeCount = 0;
 		for (const violation of enhancedViolations) {
-			violationsCount += 1;
-			logger.info(`Violation: ${violationsCount} of ${enhancedViolations.length}`);
+			violationsTypeCount += 1;
 			const { files, ...restViolationProps } = violation;
 			const llm = await LLM();
 			await llm.sendMessage(queries.initConversation(restViolationProps), true);
-
-			// Group lines by file path
-			const groupedFiles = groupFiles(files);
-
 			// For each file, group "close" lines
-			let filesCount = 0;
-			for (const [filePath, lines] of Object.entries(groupedFiles)) {
-				filesCount += 1;
-				logger.info(`groupedFiles: ${filesCount} of ${Object.entries(groupedFiles).length}`);
+			let violationsCount = 0;
+			const allViolations = files.length;
+			for (const {filePath, line} of files.sort((a,b) => (a.filePath > b.filePath))) {
+				violationsCount += 1;
+				logger.info(`Violation type: ${violationsTypeCount} of ${enhancedViolations.length} | --- --- | Violation: ${violationsCount} of ${allViolations}`);
+				const absoluteFilePath = path.join(repositoryBasePath, filePath);
+				const { offset, part: codePart } = await getCodeSection(
+					absoluteFilePath,
+					line,
+					line
+				);
 
-				// 1) Group lines with threshold=10 (tweak as needed)
-				const lineBatches = groupLines(lines);
+				const normalizedLine = line - offset;
 
-				// 2) Process each group
-				for (const group of lineBatches) {
-				// e.g. group might be [140, 140, 141], or [330, 330], etc.
-					const startLine = group[0];
-					const endLine = group.at(-1);
-					const absoluteFilePath = path.join(repositoryBasePath, filePath);
+				let retries = 5;
+				let snippet = null;
 
-					// Retrieve code snippet for the entire group range
-					const { offset, part: codePart } = await getCodeSection(
-						absoluteFilePath,
-						startLine,
-						endLine
-					);
-
-					// Re-normalize lines for your code snippet
-					const normalizedLines = group.map((line) => line - offset);
-
-					// Ask LLM to fix them
-					const response = await llm.sendMessage(
-						queries.askToResolveViolations(codePart, normalizedLines),
-					);
-					// Extract snippet from code fences
-					const snippetOnly = response
-						.replaceAll(/```\r?\n\w*\s*([\S\s]*?)```/g, "$1")
-						.trim();
-
-					// Inject fixed code
-					await injectCodePart(absoluteFilePath, startLine, endLine, snippetOnly);
-					changedFiles.add(filePath);
-
-					// (Optional) Save the response for debugging
-					fs.writeFileSync(`server-test/${MODEL}-${startLine}.md`, response, "utf8");
+				while (retries-- > 0 && !snippet ) {
+					try {
+						const response = await llm.sendMessage(
+							queries.askToResolveViolations(codePart, normalizedLine),
+						);
+						snippet =  extractSingleCodeBlockAndCheck(response, codePart);
+						// Inject fixed code
+						await injectCodePart(absoluteFilePath, line, line, snippet);
+						changedFiles.add(filePath);
+					} catch(error) {
+						logger.error(`Error llm communication: ${error.message}`);
+					}
 				}
+
 			}
 		}
 

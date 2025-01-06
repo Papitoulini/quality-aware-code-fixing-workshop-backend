@@ -41,14 +41,8 @@ async function injectCodePart(absolutePath, startLine, endLine, newCode) {
 		// Overwrite the file with updated content
 		await fs.writeFile(absolutePath, updatedData, "utf8");
 		console.log(`Updated lines ${startLine}-${endLine} in ${absolutePath}`);
-
-		return null;
 	} catch (error) {
 		logger.error(`Error during "injecting" code section from local repo: ${error.message}`);
-		return {
-			part: null, // Full code with margin
-			offset: null, // Start of requested lines within full section
-		};
 	}
 }
 

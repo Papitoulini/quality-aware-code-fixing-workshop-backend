@@ -10,10 +10,10 @@ const initConversation = (violationProps) => {
 		goodExample,
 		description,
 	} = violationProps;
-		
+
 	return `
-You are a coding expert. I have encountered the following TypeScript violation
-You should follow the bellow instractions to fix it:
+You are a coding expert. I have encountered the following TypeScript violation.
+Please follow the instructions below to address and resolve it:
 
 - Explanation: ${explanation}
 - Category: ${category}
@@ -25,40 +25,37 @@ You should follow the bellow instractions to fix it:
 - Good Example: ${goodExample}
 - Description: ${description}
 
-Keep these details in mind for the next questions (do not display them in your final fix).
+Keep these details in mind for the next questions (do not include them in your final fix).
 `.trim();
 };
 
-const askToResolveViolations = (codePart, lines, language = "TypeScript") => {
+const askToResolveViolations = (codePart, line, language = "TypeScript") => {
 	return `
 Snippet:
-\`\`\`TypeScript
+\`\`\`${language}
 ${codePart}
 \`\`\`
 
-Affected Lines: ${Array.isArray(lines) ? lines.join(', ') : lines}
+Affected Line: ${line}
 
 __________________________________________________________
 TASK:
-1. Copy the code snippet in your editor.
-2. Fix potential violations in this code snippet.
-3. Return the ENTIRE *fixed* code snippet as a string in triple backticks.
-4. Try to eliminate the violations in the corresponding lines without changing the original logic.
-
+1. Copy the code snippet into your editor.
+2. Resolve the violation highlighted in the snippet.
+3. Return the ENTIRE *fixed* code snippet as a string within triple backticks.
+4. Correct the violation in the specified line without altering the original logic.
 
 IMPORTANT:
 - Return your ENTIRE answer as a string.
 - Do NOT provide any explanation or text outside the backticks.
-- You MUST preserve the original code format as much as possible.
-- Your answer MUST contain only the *corrected code snippet* and nothing else.
-- You MUST return the ENTIRE *corrected code snippet*.
-- **Do NOT add, remove, or significantly alter any existing brackets, braces, or parentheses** 
-  unless it is strictly necessary to fix a violation.
-
+- Preserve the original code formatting as much as possible.
+- Ensure your response contains ONLY the *corrected code snippet* and nothing else.
+- **Avoid adding, removing, or significantly modifying brackets, braces, or parentheses** 
+  unless absolutely necessary to fix the violation.
+- **The corrected code snippet MUST have the same number of lines as the original.**
 
 EXAMPLE RESPONSE:
-\`\`\`
-${language}
+\`\`\`${language}
 <corrected code snippet>
 \`\`\`
 __________________________________________________

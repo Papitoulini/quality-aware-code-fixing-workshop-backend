@@ -2,8 +2,7 @@
 import fs from "node:fs/promises";
 
 import { logger }  from "#logger";
-
-const margin = 5; // Default margin for extra lines
+import { CODE_SNIPPET_MARGIN }  from "#utils";
 
 // Get Code Section Operation with margin and location of exact requested part
 const getCodeSection = async (absolutePath, startLine, endLine) => {
@@ -12,8 +11,8 @@ const getCodeSection = async (absolutePath, startLine, endLine) => {
 		const lines = data.split(/\r?\n/);
 
 		// Calculate start and end lines with margin
-		const adjustedStartLine = Math.max(0, startLine - margin); // Start of context section
-		const adjustedEndLine = Math.min(lines.length, endLine + margin); // End of context section
+		const adjustedStartLine = Math.max(0, startLine - CODE_SNIPPET_MARGIN); // Start of context section
+		const adjustedEndLine = Math.min(lines.length, endLine + CODE_SNIPPET_MARGIN); // End of context section
 
 		// Get full section with margin
 		const fullSection = lines.slice(adjustedStartLine, adjustedEndLine).join("\n");

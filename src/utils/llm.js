@@ -10,7 +10,7 @@ const LLM = async () => {
 			"Content-Type": "application/json",
 		},
 		retry: {
-			limit: 5, // total attempts = 1 initial + 4 retries
+			limit: 10, // total attempts = 1 initial + 4 retries
 			methods: ["POST"],
 			statusCodes: [408, 429, 500, 502, 503, 504],
 			errorCodes: ["ETIMEDOUT", "ECONNRESET", "EAI_AGAIN"],
@@ -30,7 +30,6 @@ const LLM = async () => {
 			}
 		},
 		// Time out each individual request after e.g. 30s
-		timeout: { request: 30_000 },
 	});
 
 	console.log("started new thread")
@@ -39,7 +38,7 @@ const LLM = async () => {
 		sendMessage: async (question, isCore = false) => {
 			if (JSON.stringify(messages) >= MAX_HTTP_REQUEST_CHARS) {
 				messages.filter((m) => m.isCore);
-				console.log("messages cleared")
+				console.log("messages cleared", messages.length)
 			}
 			messages.push({ role: "user", message: question, isCore });
 			const { body: unparsedResponse } = await pythonBackend.post("send_message", {
