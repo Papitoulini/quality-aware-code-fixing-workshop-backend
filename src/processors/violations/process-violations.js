@@ -3,7 +3,7 @@ import path from "node:path";
 import cycloptViolations from "../../../temp-violations.js"; // TO_DO get from cyclopt
 
 import queries from "./queries.js";
-import { getCodeSection, LLM, injectCodePart } from "#utils";
+import { getCodeSection, LLM, injectCodePart, extractCodeBlock } from "#utils";
 import { logger } from "#logger";
 
 const enhanceViolations = (violations = {}) => {
@@ -11,20 +11,6 @@ const enhanceViolations = (violations = {}) => {
 		const v = cycloptViolations.find((e) => e.ruleId === id) || {};
 		return { ...data, ...v };
 	});
-}
-
-const extractSingleCodeBlockAndCheck = (response, originalSnippet) => {
-	const singleBlockRegex = /```[\dA-Za-z]*\s*[\n\r]+([\S\s]*?)```/;
-	const match = singleBlockRegex.exec(response);
-	if (!match) throw new Error("No triple-backtick code block found in LLM response");
-	// match[1] is the code snippet inside the backticks
-	const snippet = match[1].trimEnd();
-
-	const originalLineCount = originalSnippet.split(/\r?\n/).length;
-	const snippetLineCount = snippet.split(/\r?\n/).length;
-	if (originalLineCount !== snippetLineCount) throw new Error("Code lines mismatch")
-
-	return snippet;
 }
 
 const processViolations = async (violations, repositoryBasePath) => {
@@ -65,7 +51,7 @@ const processViolations = async (violations, repositoryBasePath) => {
 						const response = await llm.sendMessage(
 							queries.askToResolveViolations(codePart, normalizedLine),
 						);
-						snippet =  extractSingleCodeBlockAndCheck(response, codePart);
+						snippet =  extractCodeBlock(response, codePart);
 						// Inject fixed code
 						await injectCodePart(absoluteFilePath, line, line, snippet);
 						changedFiles.add(filePath);

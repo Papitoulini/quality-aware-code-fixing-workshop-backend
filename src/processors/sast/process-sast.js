@@ -2,22 +2,8 @@
 import path from "node:path";
 
 import queries from "./queries.js";
-import { getCodeSection, LLM, injectCodePart } from "#utils";
+import { getCodeSection, LLM, injectCodePart, extractCodeBlock } from "#utils";
 import { logger } from "#logger";
-
-const extractSingleCodeBlockAndCheck = (response, originalSnippet) => {
-	const singleBlockRegex = /```[\dA-Za-z]*\s*[\n\r]+([\S\s]*?)```/;
-	const match = singleBlockRegex.exec(response);
-	if (!match) throw new Error("No triple-backtick code block found in LLM response");
-	// match[1] is the code snippet inside the backticks
-	const snippet = match[1].trimEnd();
-
-	const originalLineCount = originalSnippet.split(/\r?\n/).length;
-	const snippetLineCount = snippet.split(/\r?\n/).length;
-	if (originalLineCount !== snippetLineCount) throw new Error("No triple-backtick code block found in LLM response")
-
-	return snippet;
-}
 
 const processSast = async (codeVulnerabilities, repositoryBasePath) => {
 	try {
@@ -45,7 +31,7 @@ const processSast = async (codeVulnerabilities, repositoryBasePath) => {
 					const response = await llm.sendMessage(
 						queries.askToResolveViolations(codeVulnerability, codePart, normalizedStartLine, normalizedEndLine),
 					);
-					snippet =  extractSingleCodeBlockAndCheck(codeVulnerability, response, codePart);
+					snippet =  extractCodeBlock(codeVulnerability, response, codePart);
 					// Inject fixed code
 					await injectCodePart(absoluteFilePath, normalizedStartLine, normalizedEndLine, snippet);
 					changedFiles.add(filePath);

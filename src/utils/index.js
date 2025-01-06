@@ -8,6 +8,7 @@ export { default as formatJSONWithLineBreaks } from "./format-JSON-with-line-bre
 export { default as injectCodePart } from "./inject-code-part.js";
 export { default as groupLines } from "./group-lines.js";
 export { default as groupFiles } from "./group-files.js";
+export { default as extractCodeBlock } from "./extract-code-block.js";
 export * from "./generate-code-tree.js";
 export const MODEL = "claude";
 export const MAX_SNIPPET_LINES = 100;
