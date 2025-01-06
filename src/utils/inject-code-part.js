@@ -39,7 +39,8 @@ async function injectCodePart(absolutePath, startLine, endLine, newCode) {
 
 		// Overwrite the file with updated content
 		await fs.writeFile(absolutePath, updatedData, "utf8");
-		console.log(`Updated lines ${startLine}-${endLine} in ${absolutePath}`);
+		logger.info(`|===> Updated lines ${startLine}-${endLine} in ${absolutePath}`);
+
 	} catch (error) {
 		logger.error(`Error during "injecting" code section from local repo: ${error.message}`);
 	}

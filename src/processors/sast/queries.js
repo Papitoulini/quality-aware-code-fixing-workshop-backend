@@ -45,6 +45,8 @@ IMPORTANT:
 - Do NOT include any explanation or additional text.
 - Preserve the original formatting of the code as much as possible.
 - Avoid making changes to unrelated parts of the snippet.
+- **The corrected code snippet MUST have the same number of lines as the original.**
+	just squish every extra line into one
 
 EXAMPLE RESPONSE:
 \`\`\`${language}

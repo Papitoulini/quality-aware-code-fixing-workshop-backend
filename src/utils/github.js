@@ -47,7 +47,9 @@ const Github = (auth, authenticatedUrl, clonePath) => {
 			// For initial clone, we do *not* pass a path because it doesn't exist yet.
 			const gitInstance = simpleGit(clonePath);
 			await gitInstance.checkout(productionBranch);
-			await gitInstance.checkoutLocalBranch(newBranch);
+			try {
+				await gitInstance.checkoutLocalBranch(newBranch);
+			} catch { /* */}
 			logger.info(`Successfully created branch "${newBranch}" from branch "${productionBranch}".`);
 		} catch (error) {
 			logger.error(`Error during git clone: ${error.message}`);
