@@ -3,7 +3,7 @@ import got from "got";
 
 const LLM = async () => {
 	const { PYTHON_API_URL } = process.env;
-	const messages = [];
+	let messages = [];
 	const pythonBackend = got.extend({
 		prefixUrl: PYTHON_API_URL,
 		headers: {
@@ -36,8 +36,8 @@ const LLM = async () => {
 
 	return {
 		sendMessage: async (question, isCore = false) => {
-			if (JSON.stringify(messages) >= MAX_HTTP_REQUEST_CHARS) {
-				messages.filter((m) => m.isCore);
+			if (JSON.stringify(messages) >= MAX_HTTP_REQUEST_CHARS || messages.length > 20) {
+				messages = messages.filter((m) => m.isCore);
 				console.log("messages cleared", messages.length)
 			}
 			messages.push({ role: "user", message: question, isCore });

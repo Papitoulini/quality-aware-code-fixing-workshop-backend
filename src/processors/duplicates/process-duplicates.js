@@ -5,8 +5,7 @@ const processDuplicates = async (duplicates, repositoryBasePath) => {
 
 		const changedFiles = new Set();
 
-		console.log(duplicates)
-		console.log(repositoryBasePath)
+		console.log({ ok: true, process: "duplicates"})
 
 		return changedFiles;
 	} catch (error) {

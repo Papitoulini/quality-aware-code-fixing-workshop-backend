@@ -29,7 +29,7 @@ const processSast = async (codeVulnerabilities, repositoryBasePath) => {
 			while (retries-- > 0 && !snippet ) {
 				try {
 					const response = await llm.sendMessage(
-						queries.askToResolveViolations(codeVulnerability, codePart, normalizedStartLine, normalizedEndLine),
+						queries.generateSASTFixTask(codeVulnerability, codePart, normalizedStartLine, normalizedEndLine),
 					);
 					snippet =  extractCodeBlock(codeVulnerability, response, codePart);
 					// Inject fixed code

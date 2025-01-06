@@ -4,13 +4,13 @@ import path from "node:path";
 import "dotenv/config.js";
 
 import { processSast } from "./sast/index.js"; 
-import { Github } from "#utils";
+import { Github, MODEL } from "#utils";
 import { logger } from "#logger";
 
 const runSast = async (repoPaths, githubOptions) => {
 	try {
 		const { token, authUrl, productionBranch } = githubOptions;
-		const newBranch = "sast-fixes";
+		const newBranch = `${MODEL}-sast-fixes`;
 		const [localRepoPath, findingsPath] = repoPaths;
 
 		const sastFindingsPath = path.resolve(findingsPath, "sast.json");
@@ -25,7 +25,7 @@ const runSast = async (repoPaths, githubOptions) => {
 			const changedArray = [...changedFiles];
 			const violationsGithubOptions = {
 				commitMsg: "Fixing code vulnerabilities",
-				prTitle: "Fix code vulnerabilities",
+				prTitle: `Fix code vulnerabilities - ${MODEL}`,
 				prBody: "Automated fix for code vulnerabilities",
 				newBranch,
 				changedArray,

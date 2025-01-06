@@ -68,7 +68,9 @@ const Github = (auth, authenticatedUrl, clonePath) => {
 				changedArray: filePatterns,
 			}= githubOptions;
 			const gitInstance = simpleGit(clonePath);
-			await gitInstance.add(filePatterns.map((f) => f.startsWith("/") ? f.slice(1) : f));
+			await gitInstance.addConfig("commit.gpgSign", "false");
+			const sanitized = filePatterns.map((f) => (f.startsWith("/") ? f.slice(1) : f));
+			await gitInstance.add(sanitized);
 			const commitResult = await gitInstance.commit(commitMsg);
 			logger.info(`Successfully committed changes: ${commitResult.summary}`);
 	

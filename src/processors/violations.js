@@ -4,13 +4,13 @@ import path from "node:path";
 import "dotenv/config.js";
 
 import { processViolations } from "./violations/index.js"; 
-import { Github } from "#utils";
+import { Github, MODEL } from "#utils";
 import { logger } from "#logger";
 
 const runViolations = async (repoPaths, githubOptions) => {
 	try {
 		const { token, authUrl, productionBranch } = githubOptions;
-		const newBranch = "violations-fixes";
+		const newBranch = `${MODEL}-violations-fixes`;
 		const [localRepoPath, findingsPath] = repoPaths;
 
 		const analysisFindingsPath = path.resolve(findingsPath, "analysis.json");
@@ -26,7 +26,7 @@ const runViolations = async (repoPaths, githubOptions) => {
 			const changedArray = [...changedFiles];
 			const violationsGithubOptions = {
 				commitMsg: "Fixing code violations",
-				prTitle: "Fix Violations",
+				prTitle: `Fix Violations - ${MODEL}`,
 				prBody: "Automated fix for code violations.",
 				newBranch,
 				changedArray,

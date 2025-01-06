@@ -9,8 +9,8 @@ const processors = async (hash) => {
 	return {
 		duplicates: async () => await runDuplicates(repoPaths, githubOptions),
 		vulnerabilities: async () => await runVulnerabilities(repoPaths, githubOptions),
-		sast: async () => await runSast(repoPaths, githubOptions),
 		violations: async () => await runViolations(repoPaths, githubOptions),
+		sast: async () => await runSast(repoPaths, githubOptions),
 	}};
 
 export default processors;
