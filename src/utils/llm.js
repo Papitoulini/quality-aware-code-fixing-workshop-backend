@@ -1,4 +1,4 @@
-import { MODEL, MAX_HTTP_REQUEST_CHARS } from "./index.js";
+import { MODEL } from "./index.js";
 import got from "got";
 
 const LLM = async () => {
@@ -29,23 +29,35 @@ const LLM = async () => {
 				return delay;
 			}
 		},
-		// Time out each individual request after e.g. 30s
 	});
 
 	console.log("started new thread")
 
 	return {
+		// sendMessage: async (question, isCore = false) => {
+		// 	if (JSON.stringify(messages) >= MAX_HTTP_REQUEST_CHARS || messages.length > 20) {
+		// 		messages = messages.filter((m) => m.isCore);
+		// 		console.log("messages cleared", messages.length)
+		// 	}
+		// 	messages.push({ role: "user", message: question, isCore });
+		// 	const { body: unparsedResponse } = await pythonBackend.post("send_message", {
+		// 		json: { messages, model: MODEL },
+		// 	});
+		// 	const { response } = JSON.parse(unparsedResponse);
+		// 	messages.push({ role: "assistant", message: response, isCore });
+		// 	return response;
+		// },
 		sendMessage: async (question, isCore = false) => {
-			if (JSON.stringify(messages) >= MAX_HTTP_REQUEST_CHARS || messages.length > 20) {
-				messages = messages.filter((m) => m.isCore);
-				console.log("messages cleared", messages.length)
-			}
 			messages.push({ role: "user", message: question, isCore });
 			const { body: unparsedResponse } = await pythonBackend.post("send_message", {
 				json: { messages, model: MODEL },
 			});
 			const { response } = JSON.parse(unparsedResponse);
-			messages.push({ role: "assistant", message: response, isCore });
+			if (isCore) {
+				messages.push({ role: "assistant", message: response, isCore });
+			}
+			messages = messages.filter((m) => m.isCore);
+			console.log("messages cleared", messages.length)
 			return response;
 		},
 	};

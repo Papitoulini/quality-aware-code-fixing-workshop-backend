@@ -4,13 +4,13 @@ import path from "node:path";
 import "dotenv/config.js";
 
 import { processDuplicates } from "./duplicates/index.js"; 
-import { Github } from "#utils";
+import { Github, MODEL, ATTEMPT } from "#utils";
 import { logger } from "#logger";
 
 const runDuplicates = async (repoPaths, githubOptions) => {
 	try {
 		const { token, authUrl, productionBranch } = githubOptions;
-		const newBranch = "code-duplications-fixes";
+		const newBranch = `${MODEL}-${ATTEMPT} \`duplications\`-fixes`;
 		const [localRepoPath, findingsPath] = repoPaths;
 
 		const duplicatesFindingsPath = path.resolve(findingsPath, "clones.json");
@@ -24,9 +24,9 @@ const runDuplicates = async (repoPaths, githubOptions) => {
 		if (changedFiles.size > 0) {
 			const changedArray = [...changedFiles];
 			const violationsGithubOptions = {
-				commitMsg: "Fixing Code Duplications",
-				prTitle: "Fix Code Duplications",
-				prBody: "Automated fix for Code Duplications",
+				commitMsg: `${MODEL}-${ATTEMPT} Fixing Code \`duplications\``,
+				prTitle: `${MODEL}-${ATTEMPT} Fix Code \`duplications\``,
+				prBody: `${MODEL}-${ATTEMPT} Automated fix for Code \`duplications\``,
 				newBranch,
 				changedArray,
 				...githubOptions,

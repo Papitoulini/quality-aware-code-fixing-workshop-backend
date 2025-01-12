@@ -4,13 +4,13 @@ import path from "node:path";
 import "dotenv/config.js";
 
 import { processVulnerabilities } from "./vulnerabilities/index.js"; 
-import { Github } from "#utils";
+import { Github, MODEL, ATTEMPT } from "#utils";
 import { logger } from "#logger";
 
 const runVulnerabilities = async (repoPaths, githubOptions) => {
 	try {
 		const { token, authUrl, productionBranch } = githubOptions;
-		const newBranch = "vulnerabilities-fixes";
+		const newBranch = `${MODEL}-${ATTEMPT} \`vulnerabilities\`-fixes`;
 		const [localRepoPath, findingsPath] = repoPaths;
 
 		const vulnerabilitiesFindingsPath = path.resolve(findingsPath, "vulnerabilities.json");
@@ -24,9 +24,9 @@ const runVulnerabilities = async (repoPaths, githubOptions) => {
 		if (changedFiles.size > 0) {
 			const changedArray = [...changedFiles];
 			const violationsGithubOptions = {
-				commitMsg: "Fixing vulnerabilities",
-				prTitle: "Fix vulnerabilities",
-				prBody: "Automated fix for vulnerabilities",
+				commitMsg: `${MODEL}-${ATTEMPT} Fixing \`vulnerabilities\``,
+				prTitle: `${MODEL}-${ATTEMPT} Fix \`vulnerabilities\``,
+				prBody: `${MODEL}-${ATTEMPT} Automated fixes for \`vulnerabilities\``,
 				newBranch,
 				changedArray,
 				...githubOptions,

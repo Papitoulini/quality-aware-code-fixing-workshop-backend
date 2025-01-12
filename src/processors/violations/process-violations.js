@@ -31,7 +31,7 @@ const processViolations = async (violations, repositoryBasePath) => {
 			// For each file, group "close" lines
 			let violationsCount = 0;
 			const allViolations = files.length;
-			for (const {filePath, line} of files.sort((a,b) => (a.filePath > b.filePath))) {
+			for (const {filePath, line} of files.sort((a,b) => (a.filePath > b.filePath)).slice(0, 3)) {
 				violationsCount += 1;
 				logger.info(`Violation type: ${violationsTypeCount} of ${enhancedViolations.length} | --- --- | Violation: ${violationsCount} of ${allViolations}`);
 				const absoluteFilePath = path.join(repositoryBasePath, filePath);
