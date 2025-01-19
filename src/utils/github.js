@@ -50,7 +50,9 @@ const Github = (auth, authenticatedUrl, clonePath) => {
 			try {
 				await gitInstance.checkoutLocalBranch(newBranch);
 			} catch { /* */}
+			logger.info("------------------------");
 			logger.info(`Successfully created branch "${newBranch}" from branch "${productionBranch}".`);
+			logger.info("------------------------");
 		} catch (error) {
 			logger.error(`Error during git clone: ${error.message}`);
 			throw error;
@@ -74,6 +76,9 @@ const Github = (auth, authenticatedUrl, clonePath) => {
 			const sanitized = filePatterns.map((f) => (f.startsWith("/") ? f.slice(1) : f));
 			await gitInstance.add(sanitized);
 			const commitResult = await gitInstance.commit(commitMsg);
+			logger.info("========= Info =========");
+			logger.info("No files changed - skipping PR creation.");
+			logger.info("------------------------");
 			logger.info(`Successfully committed changes: ${commitResult.summary}`);
 	
 			// Push the new branch
@@ -87,6 +92,7 @@ const Github = (auth, authenticatedUrl, clonePath) => {
 			await gitInstance.addRemote("origin-auth", authenticatedUrl);
 			await gitInstance.push("origin-auth", newBranch);
 			logger.info(`Successfully pushed changes to branch "${newBranch}".`);
+			logger.info("------------------------");
 
 			const response = await octokit.rest.pulls.create({
 				owner,
@@ -98,6 +104,7 @@ const Github = (auth, authenticatedUrl, clonePath) => {
 			});
 	
 			logger.info(`Pull Request created: ${response.data.html_url}`);
+			logger.info("========================");
 		} catch (error) {
 			logger.error(`Error during git clone: ${error.message}`);
 			throw error;

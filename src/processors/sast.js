@@ -10,7 +10,7 @@ import { logger } from "#logger";
 const runSast = async (repoPaths, githubOptions) => {
 	try {
 		const { token, authUrl, productionBranch } = githubOptions;
-		const newBranch = `${MODEL}-${ATTEMPT} \`sast\`-fixes`;
+		const newBranch = `${MODEL}-${ATTEMPT}-sast-fixes`;
 		const [localRepoPath, findingsPath] = repoPaths;
 
 		const sastFindingsPath = path.resolve(findingsPath, "sast.json");
@@ -24,9 +24,9 @@ const runSast = async (repoPaths, githubOptions) => {
 		if (changedFiles.size > 0) {
 			const changedArray = [...changedFiles];
 			const violationsGithubOptions = {
-				commitMsg: `${MODEL}-${ATTEMPT} Fixing \`sast\``,
-				prTitle: `${MODEL}-${ATTEMPT} Fix \`sast\``,
-				prBody: `${MODEL}-${ATTEMPT} Automated fixes for \`sast\``,
+				commitMsg: `${MODEL}-${ATTEMPT} Fixing sast`,
+				prTitle: `${MODEL}-${ATTEMPT} Fix sast`,
+				prBody: `${MODEL}-${ATTEMPT} Automated fixes for sast`,
 				newBranch,
 				changedArray,
 				...githubOptions,

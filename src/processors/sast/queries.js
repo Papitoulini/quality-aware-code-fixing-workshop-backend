@@ -9,8 +9,9 @@ const generateSASTFixTask = (codeVulnerability, codePart, startLine, endLine, la
 		},
 		severity,
 		metadata: {
-			cwe,
-			vulnerability_class
+			cwe = null,
+			references = null,
+			vulnerability_class = null,
 		}
 	} = codeVulnerability;
 
@@ -20,8 +21,9 @@ Please analyze and resolve it according to the provided details:
 
 - Message: ${message}
 - Severity: ${severity || 'Not specified'}
-- Weakness Enumeration: ${cwe.join("/n")}
-- Vulnerability Class: ${vulnerability_class.join("/n")}
+- Weakness Enumeration: ${cwe?.join("/n")}
+- References: ${references?.join("/n")}
+- Vulnerability Class: ${vulnerability_class?.join("/n")}
 
 Focus on resolving the issue using best practices for the identified language and category.
 Do not include this metadata in your final response.
@@ -36,17 +38,18 @@ ${codePart}
 __________________________________________________________
 TASK:
 1. Copy the code snippet into your editor.
-2. Analyze the snippet for the specified SAST violation.
-3. Correct the violation on the indicated lines, preserving the original logic and format.
-4. Return the ENTIRE *fixed* code snippet as a string within triple backticks.
+2. Resolve the violation highlighted in the snippet.
+3. Return the ENTIRE *fixed* code snippet as a string within triple backticks.
+4. Correct the violation in the specified line without altering the original logic.
 
 IMPORTANT:
-- Your response must contain ONLY the corrected code snippet.
-- Do NOT include any explanation or additional text.
-- Preserve the original formatting of the code as much as possible.
-- Avoid making changes to unrelated parts of the snippet.
+- Return your ENTIRE answer as a string.
+- Do NOT provide any explanation or text outside the backticks.
+- Preserve the original code formatting as much as possible.
+- Ensure your response contains ONLY the *corrected code snippet* and nothing else.
+- **Avoid adding, removing, or significantly modifying brackets, braces, or parentheses** 
+  unless absolutely necessary to fix the violation.
 - **The corrected code snippet MUST have the same number of lines as the original.**
-	just squish every extra line into one
 
 EXAMPLE RESPONSE:
 \`\`\`${language}

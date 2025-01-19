@@ -28,8 +28,8 @@ async function injectCodePart(absolutePath, startLine, endLine, newCode) {
 		if (!newCode) return null;
 
 		// Otherwise, we are writing/replacing lines in-place:
-		const adjustedStartLine = Math.max(0, startLine - CODE_SNIPPET_MARGIN); // Start of context section
-		const adjustedEndLine = Math.min(lines.length, endLine + CODE_SNIPPET_MARGIN); // End of context section
+		const adjustedStartLine = Math.max(0, Number(startLine) - CODE_SNIPPET_MARGIN); // Start of context section
+		const adjustedEndLine = Math.min(lines.length, Number(endLine) + CODE_SNIPPET_MARGIN); // End of context section
 		// Split newCode into array of lines for insertion
 		const newLines = newCode.split(/\r?\n/);
 
