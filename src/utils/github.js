@@ -111,12 +111,17 @@ const Github = (auth, authenticatedUrl, clonePath) => {
 		}
 	};
 
+	const rest = async (route, params) => {
+		return octokit.request(route, params);
+	};
+
 	return {
 		// Octokit handles
 		octokit, // You can directly use octokit.rest, octokit.graphql, octokit.paginate, etc.
 		preProcess,
 		cloneRepo,
 		afterProcess,
+		rest,
 	};
 };
 

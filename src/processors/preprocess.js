@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { models } from "#dbs";
-import { getAnalysisFolderFile, getCloudAnalysis, constructAuthUrl, Github } from "#utils";
+import { getAnalysisFolderFile, getCloudAnalysis, constructAuthUrl, Github, LOCAL_FOLDER } from "#utils";
 import { logger } from "#logger";
 
 const { Analysis, Commit } = models;
@@ -28,13 +28,14 @@ const preprocess = async (sha) => {
 			.lean();
 
 		logger.info(`General Info: ${JSON.stringify({commitId, owner, name, sha, userId, username}, null, 2)}`);
-
 		const analysis = await Analysis.findOne({ commit: commitId, language, pending: true }).lean();
 
 		const authUrl = constructAuthUrl(token, owner, name);
-		const localPath = path.resolve("tmp", analysis.internalId);
+		const localPath = path.resolve(LOCAL_FOLDER, analysis.internalId);
 		const localRepoPath = path.resolve(localPath, name);
 		const findingsPath = path.resolve(localPath, "findings");
+
+		if (!fs.existsSync(LOCAL_FOLDER)) fs.mkdirSync(LOCAL_FOLDER);
 
 		const repoPaths = [localRepoPath, findingsPath];
 

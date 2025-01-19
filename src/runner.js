@@ -7,7 +7,8 @@ const analyzer = async (sha) => {
 		for (const processor of Object.values(processorsInstance)) await processor();
 		// await deleteFolder();
 		return { success: true };
-	} catch {
+	} catch (error) {
+		console.log(error);
 		return { success: false };
 	}
 };

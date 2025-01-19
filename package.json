@@ -57,6 +57,7 @@
     "eslint-plugin-security": "^3.0.1",
     "eslint-plugin-unicorn": "^55.0.0",
     "express": "^5.0.0",
+    "git-diff": "^2.0.6",
     "globals": "^15.10.0",
     "got": "^14.4.4",
     "helmet": "^8.0.0",
