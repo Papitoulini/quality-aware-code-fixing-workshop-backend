@@ -129,6 +129,7 @@ const processViolations = async (violations, repositoryBasePath) => {
 			if (violationsForPrompt.length > 0) {
 				// Attempt to retrieve the file content
 				const { part: codeFile, totalLines } = await getCodeFromFile(absoluteFilePath);
+				if (totalLines < 700) continue;
 				logger.debug(`[processViolations] File ${filePath} has ${totalLines} lines (allowed max: ${TOTAL_ALLOWED_LINES}).`);
 
 				let attemptsUsed = 0;

@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const deleteFolder = (dirPath = String.raw`C:\\Users\\panpa\\Desktop\\thesis-vol-2\\my-code\\thesis\\tmp`) => {
+const deleteFolder = (dirPath = String.raw`C:\\Users\\panpa\\Desktop\\thesis-vol-2\\my-code\\thesis\\tmp_1`) => {
 	if (!fs.existsSync(dirPath)) {
 		throw new Error(`The specified path does not exist: ${dirPath}`);
 	}

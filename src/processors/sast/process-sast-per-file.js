@@ -86,6 +86,7 @@ const processSastPerFile = async (codeVulnerabilities, repositoryBasePath) => {
 			}
 			if (sastForPrompt.length > 0) {
 				const { part: codeFile, totalLines } = await getCodeFromFile(absoluteFilePath);
+				if (totalLines < 700) continue;
 				logger.debug(`[processSast] File ${filePath} has ${totalLines} lines (allowed max: ${TOTAL_ALLOWED_LINES}).`);
 				let attemptsUsed = 0;
 				console.log(`[processSast] File ${filePath} has ${totalLines} lines (allowed max: ${TOTAL_ALLOWED_LINES}).`);

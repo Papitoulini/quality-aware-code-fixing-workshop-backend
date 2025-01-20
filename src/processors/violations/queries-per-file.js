@@ -38,7 +38,7 @@ const askToResolveViolations = (codeFile, violations, language = "TypeScript") =
 - Good Example: ${goodExample}
 - Description: ${description}
 
-- Affected Lines: ${lines.short().join(", ")}
+- Affected Lines: ${lines.sort((a, b) => a - b).join(", ")}
 `}).join("");
 	return `
 You are a coding expert. I have encountered the following TypeScript violation.
