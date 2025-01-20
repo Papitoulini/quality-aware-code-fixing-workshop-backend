@@ -73,13 +73,8 @@ function transformViolations(violations_) {
  */
 const processViolations = async (violations, repositoryBasePath) => {
 	logger.info("[processViolations] Starting violation processing...");
-	const metaFilesFolderName = "meta-folder";
-	const outputProcessOutput = [];
-
-	const metaFilesFolderPath = path.join(
-		repositoryBasePath.split("/").slice(0, -1).join("/"), 
-		metaFilesFolderName
-	);
+	const processOutput = [];
+	const metaFilesFolderPath =  "meta-folder";
 
 	logger.debug(`[processViolations] Ensuring metaFilesFolderPath exists at: ${metaFilesFolderPath}`);
 	if (!fs.existsSync(metaFilesFolderPath)) {
@@ -171,7 +166,7 @@ const processViolations = async (violations, repositoryBasePath) => {
 					logger.warn(`[processViolations] Skipping file ${filePath}; it exceeds the allowed line limit.`);
 				}
 
-				outputProcessOutput.push({
+				processOutput.push({
 					violations: violationsForPrompt,
 					filePath,
 					attempts: attemptsUsed,
@@ -184,7 +179,7 @@ const processViolations = async (violations, repositoryBasePath) => {
 
 		fs.writeFileSync(
 			path.join(metaFilesFolderPath, "violations-OUTPUT.json"),
-			JSON.stringify(outputProcessOutput, null, 2)
+			JSON.stringify(processOutput, null, 2)
 		);
 		logger.info("[processViolations] Wrote violations-OUTPUT.json");
 		
@@ -194,7 +189,7 @@ const processViolations = async (violations, repositoryBasePath) => {
 		logger.error(`[processViolations] Error during process: ${error.message}`);
 		fs.writeFileSync(
 			path.join(metaFilesFolderPath, "violations-OUTPUT.json"),
-			JSON.stringify(outputProcessOutput, null, 2)
+			JSON.stringify(processOutput, null, 2)
 		);
 		throw error;
 	}

@@ -207,11 +207,8 @@ function getAllJsTsFiles(dir, repositoryBasePath) {
  * 6) Replace node, write updated file
  */
 export default async function processViolations(violations, repositoryBasePath) {
-	const metaFilesFolderName = "meta-folder";
-	const metaFilesFolderPath = path.join(
-		repositoryBasePath.split("\\").slice(0, -1).join("/"),
-		metaFilesFolderName
-	);
+	const processOutput = [];
+	const metaFilesFolderPath =  "meta-folder";
 	
 	if (!fs.existsSync(metaFilesFolderPath)) fs.mkdirSync(metaFilesFolderPath, { recursive: true });
 	logger.info(`Violation PROCESS STARTED`);

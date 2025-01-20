@@ -33,9 +33,8 @@ import { logger } from "#logger";
 // }
 
 const processSast = async (codeVulnerabilities, repositoryBasePath) => {
-	const metaFilesFolderName = "meta-folder"
-	const outputProcessFindings = []
-	const metaFilesFolderPath = path.join(repositoryBasePath.split("\\").slice(0, -1).join("/"), metaFilesFolderName);
+	const processOutput = [];
+	const metaFilesFolderPath =  "meta-folder";
 	
 	// Check if the metaFilesFolderPath exists, if not, create it
 	if (!fs.existsSync(metaFilesFolderPath)) {
@@ -80,7 +79,7 @@ const processSast = async (codeVulnerabilities, repositoryBasePath) => {
 				}
 			}
 
-			outputProcessFindings.push({
+			processOutput.push({
 				codeVulnerability,
 				filePath,
 				attempts: attemptsUsed,
@@ -88,12 +87,12 @@ const processSast = async (codeVulnerabilities, repositoryBasePath) => {
 			})
 		}
 
-		fs.writeFileSync(path.join(metaFilesFolderPath, "sast-outputProcessFindings.json"), JSON.stringify(outputProcessFindings, null, 2))
+		fs.writeFileSync(path.join(metaFilesFolderPath, "sast-processOutput.json"), JSON.stringify(processOutput, null, 2))
 
 		return changedFiles;
 	} catch (error) {
 		console.log(error);
-		fs.writeFileSync(path.join(metaFilesFolderPath, "sast-outputProcessFindings.json"), JSON.stringify(outputProcessFindings, null, 2))
+		fs.writeFileSync(path.join(metaFilesFolderPath, "sast-processOutput.json"), JSON.stringify(processOutput, null, 2))
 		logger.error(`Error during preprocess: ${error.message}`);
 		throw error;
 	}

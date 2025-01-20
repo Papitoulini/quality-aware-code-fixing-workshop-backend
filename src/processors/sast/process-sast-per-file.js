@@ -54,9 +54,8 @@ function transformCodeVulnerabilities(codeVulnerabilities) {
 
 const processSastPerFile = async (codeVulnerabilities, repositoryBasePath) => {
 	logger.info("[processSast] Starting sast processing...");
-	const metaFilesFolderName = "meta-folder"
-	const outputProcessOutput = []
-	const metaFilesFolderPath = path.join(repositoryBasePath.split("/").slice(0, -1).join("/"), metaFilesFolderName);
+	const processOutput = [];
+	const metaFilesFolderPath =  "meta-folder";
 	
 	logger.debug(`[processSast] Ensuring metaFilesFolderPath exists at: ${metaFilesFolderPath}`);
 	if (!fs.existsSync(metaFilesFolderPath)) fs.mkdirSync(metaFilesFolderPath, { recursive: true });
@@ -118,7 +117,7 @@ const processSastPerFile = async (codeVulnerabilities, repositoryBasePath) => {
 					}
 
 				}
-				outputProcessOutput.push({
+				processOutput.push({
 					sast: sastForPrompt,
 					filePath,
 					attempts: attemptsUsed,
@@ -128,7 +127,7 @@ const processSastPerFile = async (codeVulnerabilities, repositoryBasePath) => {
 
 		fs.writeFileSync(
 			path.join(metaFilesFolderPath, "sast-OUTPUT.json"),
-			JSON.stringify(outputProcessOutput, null, 2)
+			JSON.stringify(processOutput, null, 2)
 		);
 		logger.info("[processSast] Wrote sast-OUTPUT.json");
 		
@@ -138,7 +137,7 @@ const processSastPerFile = async (codeVulnerabilities, repositoryBasePath) => {
 		logger.error(`[processSast] Error during process: ${error.message}`);
 		fs.writeFileSync(
 			path.join(metaFilesFolderPath, "sast-OUTPUT.json"),
-			JSON.stringify(outputProcessOutput, null, 2)
+			JSON.stringify(processOutput, null, 2)
 		);
 		throw error;
 	}

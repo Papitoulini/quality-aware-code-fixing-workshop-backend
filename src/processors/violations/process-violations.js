@@ -15,9 +15,8 @@ const enhanceViolations = (violations = {}) => {
 }
 
 const processViolations = async (violations, repositoryBasePath) => {
-	const metaFilesFolderName = "meta-folder"
-	const outputProcessFindings = []
-	const metaFilesFolderPath = path.join(repositoryBasePath.split("\\").slice(0, -1).join("/"), metaFilesFolderName);
+	const processOutput = [];
+	const metaFilesFolderPath =  "meta-folder";
 	
 	// Check if the metaFilesFolderPath exists, if not, create it
 	if (!fs.existsSync(metaFilesFolderPath)) {
@@ -83,7 +82,7 @@ const processViolations = async (violations, repositoryBasePath) => {
 					}
 				}
 
-				outputProcessFindings.push({
+				processOutput.push({
 					restViolationProps,
 					filePath,
 					attempts: attemptsUsed,
@@ -93,11 +92,11 @@ const processViolations = async (violations, repositoryBasePath) => {
 			}
 		}
 
-		fs.writeFileSync(path.join(metaFilesFolderPath, "violations-outputProcessFindings.json"), JSON.stringify(outputProcessFindings, null, 2))
+		fs.writeFileSync(path.join(metaFilesFolderPath, "violations-processOutput.json"), JSON.stringify(processOutput, null, 2))
 
 		return changedFiles;
 	} catch (error) {
-		fs.writeFileSync(path.join(metaFilesFolderPath, "violations-outputProcessFindings.json"), JSON.stringify(outputProcessFindings, null, 2))
+		fs.writeFileSync(path.join(metaFilesFolderPath, "violations-processOutput.json"), JSON.stringify(processOutput, null, 2))
 		logger.error(`Error during preprocess: ${error.message}`);
 		throw error;
 	}
