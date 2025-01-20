@@ -14,10 +14,15 @@ import { CODE_SNIPPET_MARGIN }  from "#utils";
  * @returns {Promise<string|null>} - If reading, returns the extracted snippet.
  *                                   If writing, returns null.
  */
-async function injectCodePart(absolutePath, startLine, endLine, newCode) {
+async function injectCodePart(absolutePath, newCode, startLine = null, endLine = null) {
 	try {
 		if (!absolutePath) {
 			console.error("No file path provided.");
+			return null;
+		}
+
+		if (!startLine && !endLine) {
+			await fs.writeFile(absolutePath, newCode, "utf8");
 			return null;
 		}
 

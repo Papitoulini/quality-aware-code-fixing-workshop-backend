@@ -14,32 +14,6 @@ const enhanceViolations = (violations = {}) => {
 	});
 }
 
-// function processFileLineData(data) {
-// 	/**
-//      * Processes an array of objects containing filenames and lines, returning
-//      * an array of unique filenames and lines with their counts.
-//      *
-//      * @param {Array} data - Input data in the format [{ filename: ..., line: ... }, ...]
-//      * @returns {Array} - Output in the format [{ uniqueFilename: ..., uniqueLine: ..., count: ... }, ...]
-//      */
-
-// 	// Create a Map to count occurrences of unique combinations
-// 	const countMap = new Map();
-
-// 	for (const { filePath, line } of data) {
-// 		const key = `${filePath}||${line}`; // Use a unique delimiter to combine filename and line
-// 		countMap.set(key, (countMap.get(key) || 0) + 1);
-// 	}
-
-// 	// Transform the Map into the desired output format
-// 	const result = [...countMap.entries()].map(([key, count]) => {
-// 		const [uniqueFilename, uniqueLine] = key.split('||');
-// 		return { filePath: uniqueFilename, line: uniqueLine, count };
-// 	});
-
-// 	return result;
-// }
-
 const processViolations = async (violations, repositoryBasePath) => {
 	const metaFilesFolderName = "meta-folder"
 	const outputProcessFindings = []
@@ -101,7 +75,7 @@ const processViolations = async (violations, repositoryBasePath) => {
 						const lineCountResponse = snippet.split(/\r?\n/).length;
 						console.log(`Response Line Count: ${lineCountResponse}`);
 						// Inject fixed code
-						await injectCodePart(absoluteFilePath, line, line, snippet);
+						await injectCodePart(absoluteFilePath, snippet, line, line);
 						changedFiles.add(filePath);
 					} catch(error) {
 						console.warn(error.message);

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import "dotenv/config.js";
 
-import { processSast } from "./sast/index.js"; 
+import { processSastPerFile } from "./sast/index.js"; 
 import { Github, MODEL, ATTEMPT } from "#utils";
 import { logger } from "#logger";
 
@@ -19,7 +19,7 @@ const runSast = async (repoPaths, githubOptions) => {
 		// // Create the GitHub client
 		const gitInstance = Github(token, authUrl, localRepoPath);
 		await gitInstance.preProcess(productionBranch, newBranch);
-		const changedFiles = await processSast(sast, localRepoPath);
+		const changedFiles = await processSastPerFile(sast, localRepoPath);
 		// 6. If we actually changed some files, commit + push + open PR
 		if (changedFiles.size > 0) {
 			const changedArray = [...changedFiles];

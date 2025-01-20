@@ -72,7 +72,7 @@ const processSast = async (codeVulnerabilities, repositoryBasePath) => {
 
 					snippet =  extractCodeBlock(response, codePart);
 					// Inject fixed code
-					await injectCodePart(absoluteFilePath, normalizedStartLine, normalizedEndLine, snippet);
+					await injectCodePart(absoluteFilePath, startLine, endLine, snippet);
 					changedFiles.add(filePath);
 				} catch(error) {
 					console.warn(error.message);

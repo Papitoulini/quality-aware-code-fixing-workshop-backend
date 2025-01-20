@@ -29,13 +29,6 @@ const extractCodeBlock = (response, originalSnippet = '') => {
 		}
 	}
 	
-	// // Example: "catch" (i.e., find) the location of path.resolve(...) if it exists.
-	// const pathRegex = /path\.resolve\s*\(\s*["'`](.*?)["'`]\s*\)/;
-	// const pathMatch = pathRegex.exec(snippet);
-	// if (pathMatch) {
-	// 	console.log("Found path.resolve call with argument:", pathMatch[1]);
-	// }
-	
 	return snippet;
 };
 	

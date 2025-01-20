@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import "dotenv/config.js";
 
-import { processViolations, processViolationsAst } from "./violations/index.js"; 
+import { processViolationsPerFile } from "./violations/index.js"; 
 import { Github, MODEL, ATTEMPT } from "#utils";
 import { logger } from "#logger";
 
@@ -20,7 +20,7 @@ const runViolations = async (repoPaths, githubOptions) => {
 		// // Create the GitHub client
 		const gitInstance = Github(token, authUrl, localRepoPath);
 		await gitInstance.preProcess(productionBranch, newBranch);
-		const changedFiles = await processViolationsAst(violations, localRepoPath);
+		const changedFiles = await processViolationsPerFile(violations, localRepoPath);
 		// 6. If we actually changed some files, commit + push + open PR
 		if (changedFiles.size > 0) {
 			const changedArray = [...changedFiles];
