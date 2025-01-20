@@ -15,8 +15,8 @@ const deleteFolder = (dirPath = String.raw`C:\\Users\\panpa\\Desktop\\thesis-vol
 
 		if (stats.isFile() || stats.isSymbolicLink()) {
 			fs.unlinkSync(filePath); // Remove file or symbolic link
-		} else if (stats.isDirectory()) {
-			fs.rmSync(filePath, { recursive: true })
+		} else if (stats.isDirectory() && file !== 'meta-folder') {
+			fs.rmSync(filePath, { recursive: true });
 		}
 	}
 }

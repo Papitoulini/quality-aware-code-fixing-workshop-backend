@@ -73,7 +73,7 @@ function transformViolations(violations_) {
  */
 const processViolations = async (violations, repositoryBasePath) => {
 	logger.info("[processViolations] Starting violation processing...");
-	const metaFilesFolderName = "meta-folder-a";
+	const metaFilesFolderName = "meta-folder";
 	const outputProcessOutput = [];
 
 	const metaFilesFolderPath = path.join(
@@ -115,9 +115,9 @@ const processViolations = async (violations, repositoryBasePath) => {
 		// Initialize LLM only once before iteration
 		const llm = await LLM();
 
-		logger.info(`[processViolations] Beginning per-file analysis (limited to first 3 files)...`);
+		logger.info(`[processViolations] Beginning per-file analysis`);
 		// Limit to the first 3 for demonstration or performance reasons
-		const filesWithFindings = Object.entries(filesMap).slice(0, 3);
+		const filesWithFindings = Object.entries(filesMap);
 
 		for (const [filePath, findings_] of filesWithFindings) {
 			logger.info(`[processViolations] Analyzing file: ${filePath}`);
@@ -153,7 +153,6 @@ const processViolations = async (violations, repositoryBasePath) => {
 							const response = await llm.sendMessage(
 								queries.askToResolveViolations(codeFile, violationsForPrompt),
 							);
-							attemptsUsed++;
 							snippet = extractCodeBlock(response);
 							
 							const lineCountResponse = snippet.split(/\r?\n/).length;

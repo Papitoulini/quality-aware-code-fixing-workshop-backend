@@ -46,7 +46,6 @@ const LLM = async () => {
 				messages.pop();
 				console.log("messages cleared", messages.length)
 			}
-			// messages = messages.filter((m) => m.isCore);
 			return response;
 		},
 	};

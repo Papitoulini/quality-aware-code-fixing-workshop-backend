@@ -54,7 +54,7 @@ function transformCodeVulnerabilities(codeVulnerabilities) {
 
 const processSastPerFile = async (codeVulnerabilities, repositoryBasePath) => {
 	logger.info("[processSast] Starting sast processing...");
-	const metaFilesFolderName = "meta-folder-a"
+	const metaFilesFolderName = "meta-folder"
 	const outputProcessOutput = []
 	const metaFilesFolderPath = path.join(repositoryBasePath.split("/").slice(0, -1).join("/"), metaFilesFolderName);
 	
@@ -74,8 +74,10 @@ const processSastPerFile = async (codeVulnerabilities, repositoryBasePath) => {
 		// // Iterate over each violation
 		const llm = await LLM();
 
-		logger.info(`[processSast] Beginning per-file analysis (limited to first 3 files)...`);
-		for (const [filePath, findings_] of Object.entries(filesMap).slice(0, 3)) {
+		logger.info(`[processSast] Beginning per-file analysis`);
+		const filesWithFindings = Object.entries(filesMap);
+
+		for (const [filePath, findings_] of filesWithFindings) {
 			logger.info(`[processSast] Analyzing file: ${filePath}`);
 			const absoluteFilePath = path.join(repositoryBasePath, filePath);
 			const sastForPrompt = [];
@@ -89,18 +91,17 @@ const processSastPerFile = async (codeVulnerabilities, repositoryBasePath) => {
 				let attemptsUsed = 0;
 				console.log(`[processSast] File ${filePath} has ${totalLines} lines (allowed max: ${TOTAL_ALLOWED_LINES}).`);
 				if (totalLines <= TOTAL_ALLOWED_LINES) {
-					console.log(queries.generateSASTFixTask(codeFile, sastForPrompt));
 					const maxAttempts = 5;
 					let snippet = null;
 					while (attemptsUsed < maxAttempts && !snippet) {
+						attemptsUsed++;
 						logger.debug(`[processSast] LLM attempt #${attemptsUsed} for file ${filePath}`);
 						console.log(`[processSast] LLM attempt #${attemptsUsed}`)
 
 						try {
 							const response = await llm.sendMessage(
-								queries.askToResolveViolations(codeFile, sastForPrompt),
+								queries.generateSASTFixTask(codeFile, sastForPrompt),
 							);
-							attemptsUsed++;
 							snippet = extractCodeBlock(response);
 							
 							const lineCountResponse = snippet.split(/\r?\n/).length;
