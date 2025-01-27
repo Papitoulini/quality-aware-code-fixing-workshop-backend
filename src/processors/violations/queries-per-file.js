@@ -41,7 +41,7 @@ const askToResolveViolations = (codeFile, violations, language = "TypeScript") =
 - Affected Lines: ${lines.sort((a, b) => a - b).join(", ")}
 `}).join("");
 	return `
-You are a coding expert. I have encountered the following TypeScript violation.
+You are a coding expert in ${language}. I have encountered the following TypeScript violation.
 Please follow the instructions below to address and resolve it:
 
 ${targetViolations}
@@ -49,28 +49,20 @@ ${targetViolations}
 TASK:
 1. Copy the code snippet into your editor.
 2. Resolve the violation highlighted in the snippet.
-3. Return the ENTIRE *fixed* code snippet as a string within triple backticks.
 4. Correct the violation in the specified line without altering the original logic.
+5. RETURN THE ENTIRE FILE WITH THE FIXES. DONT SAY ANYTHING ELSE.
 
-IMPORTANT:
-- Return your ENTIRE answer as a string.
-- Do NOT provide any explanation or text outside the backticks.
-- Preserve the original code formatting as much as possible.
-- Ensure your response contains ONLY the *corrected code* and nothing else.
-- **Avoid adding, removing, or significantly modifying brackets, braces, or parentheses** 
-  unless absolutely necessary to fix the violation.
-__________________________________________________________
+CODE:
 
-FILE:
-\`\`\`${language}
+\`\`\`TypeScript
 ${codeFile}
 \`\`\`
 
-EXAMPLE RESPONSE:
-\`\`\`${language}
-<corrected code snippet>
+Example Response:
+\`\`\`TypeScript
+<Fixed File>
 \`\`\`
-__________________________________________________
+
 `.trim();
 };
 

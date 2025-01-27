@@ -27,15 +27,16 @@ const getIntroducedViolationsProps = async (currentCommitId, language, root, isM
 	if (!fromCommit) return null;
 
 	const fromAnalysisDB = await Analysis.findOne({
+		_id: new Types.ObjectId("679790349d8f704d3b4a745c"),
 		commit: fromCommit._id,
 		language,
 		root,
-		"configuration.applications": APPLICATION,
-		"configuration.subanalyzersCompleted": { $all: APPLICATIONS[APPLICATION] },
+		// "configuration.applications": APPLICATION,
+		// "configuration.subanalyzersCompleted": { $all: APPLICATIONS[APPLICATION] },
 		hasError: false,
 		isEmpty: false,
 		archived: false,
-	}).select("_id language internalId").lean().exec();
+	}).populate("commit").select("_id language internalId commit").lean().exec();
 	const toAnalysisDB = await Analysis.findOne({
 		commit: toCommitId,
 		language,
@@ -45,7 +46,7 @@ const getIntroducedViolationsProps = async (currentCommitId, language, root, isM
 		hasError: false,
 		isEmpty: false,
 		archived: false,
-	}).select("_id language internalId").lean().exec();
+	}).populate("commit").select("_id language internalId commit").lean().exec();
 	const { patches, changedFileNameMapping } = await getPatchedInfo(owner, repo, user, toCommitHash, type);
 
 	console.log(fromAnalysisDB, toAnalysisDB)

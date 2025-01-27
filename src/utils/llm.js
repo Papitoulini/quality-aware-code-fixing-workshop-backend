@@ -43,7 +43,7 @@ const LLM = async () => {
 			if (isCore) {
 				messages.push({ role: "assistant", message: response, isCore });
 			} else {
-				messages.pop();
+				messages.length = 0;
 				console.log("messages cleared", messages.length)
 			}
 			return response;

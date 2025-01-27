@@ -7,7 +7,7 @@ import _traverse from "@babel/traverse";
 const traverse = _traverse.default;
 
 import queries from "./queries-per-file.js";
-import { getCodeFromFile, LLM, injectCodePart, extractCodeBlock, TOTAL_ALLOWED_LINES, parseCodeToAst } from "#utils";
+import { getCodeFromFile, applyChunkFixesSequentially, LLM, injectCodePart, extractCodeBlock, TOTAL_ALLOWED_LINES, parseCodeToAst, breakCodeIntoChunks } from "#utils";
 import { logger } from "#logger";
 
 /**
@@ -199,96 +199,31 @@ const extractEnvVarNamesFromAST = (ast) => {
 
 const processSastPerFile = async (codeVulnerabilities, repositoryBasePath) => {
 	logger.info("[processSast] Starting sast processing...");
-	const metaFilesFolderPath = "meta-folder";
-
+	const processOutput = [];
+	const metaFilesFolderPath =	"meta-folder";
+	
 	logger.debug(`[processSast] Ensuring metaFilesFolderPath exists at: ${metaFilesFolderPath}`);
 	if (!fs.existsSync(metaFilesFolderPath)) fs.mkdirSync(metaFilesFolderPath, { recursive: true });
-
-	// Load already processed and ignored files
-	const processedFilesPath = path.join(metaFilesFolderPath, "sast-processed-files.json");
-	const ignoredFilesPath = path.join(metaFilesFolderPath, "sast-ignored-files.json");
-	const outputPath = path.join(metaFilesFolderPath, "sast-OUTPUT.json");
-	const collectedEnvVarsPath = path.join(metaFilesFolderPath, "sast-collectedEnvVariables.json");
-
-	const alreadyProcessedFilesUnparsed = fs.existsSync(processedFilesPath);
-	const alreadyProcessedFiles = alreadyProcessedFilesUnparsed
-		? JSON.parse(fs.readFileSync(processedFilesPath, 'utf8'))
-		: [];
-	const alreadyIgnoredFilesUnparsed = fs.existsSync(ignoredFilesPath);
-	const alreadyIgnoredFiles = alreadyIgnoredFilesUnparsed
-		? JSON.parse(fs.readFileSync(ignoredFilesPath, 'utf8'))
-		: [];
-	const alreadyIgnoredFilesSet = new Set(alreadyIgnoredFiles);
-	const alreadyProcessedFilesSet = new Set([...alreadyProcessedFiles, ...alreadyIgnoredFiles]);
-	const changedFiles = new Set(alreadyProcessedFiles);
-
-	// Load existing processOutput if available
-	let processOutput = [];
-	if (fs.existsSync(outputPath)) {
-		try {
-			processOutput = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
-			logger.debug(`[processSast] Loaded existing processOutput with ${processOutput.length} entries.`);
-		} catch {
-			logger.warn(`[processSast] Failed to parse existing sast-OUTPUT.json. Initializing as empty array.`);
-			processOutput = [];
-		}
-	}
-
-	// Load existing collectedEnvVariables if available
-	let collectedEnvVariables = [];
-	if (fs.existsSync(collectedEnvVarsPath)) {
-		try {
-			collectedEnvVariables = JSON.parse(fs.readFileSync(collectedEnvVarsPath, 'utf8'));
-			logger.debug(`[processSast] Loaded existing collectedEnvVariables with ${collectedEnvVariables.length} entries.`);
-		} catch {
-			logger.warn(`[processSast] Failed to parse existing sast-collectedEnvVariables.json. Initializing as empty array.`);
-			collectedEnvVariables = [];
-		}
-	}
-
+	const changedFiles = new Set();
+	
 	try {
 		logger.debug(`[processSast] Number of initial code vulnerabilities: ${codeVulnerabilities.length}`);
+		// const changedFiles = new Set();
 		const { vulnerabilitiesMap, filesMap } = transformCodeVulnerabilities(codeVulnerabilities);
-		fs.writeFileSync(path.join(metaFilesFolderPath, "sast-vulnerabilitiesMap.json"), JSON.stringify(vulnerabilitiesMap, null, 2));
+		fs.writeFileSync(path.join(metaFilesFolderPath, "sast-vulnerabilitiesMap.json"), JSON.stringify(vulnerabilitiesMap, null, 2))
 		logger.debug("[processSast] Wrote sast-vulnerabilitiesMap.json");
-		fs.writeFileSync(path.join(metaFilesFolderPath, "sast-filesMap.json"), JSON.stringify(filesMap, null, 2));
+		fs.writeFileSync(path.join(metaFilesFolderPath, "sast-filesMap.json"), JSON.stringify(filesMap, null, 2))
 		logger.debug("[processSast] Wrote sast-filesMap.json");
 
-		// Initialize LLM
+		// // Iterate over each violation
 		const llm = await LLM();
 
 		logger.info(`[processSast] Beginning per-file analysis`);
-        
-		const filesToProcess = Object.entries(filesMap).filter(([filePath, findings_]) => {
-			// Skip already processed files
-			if (alreadyProcessedFilesSet.has(filePath)) {
-				logger.info(`[processSast] File ${filePath} already processed. Skipping...`);
-				return false;
-			}
+		const filesWithFindings = Object.entries(filesMap);
 
-			// Skip files with no findings
-			if (!findings_ || Object.keys(findings_).length === 0) {
-				logger.info(`[processSast] File ${filePath} has no findings. Skipping...`);
-				return false;
-			}
-
-			// Skip files that do not exist
-			const absoluteFilePath = path.join(repositoryBasePath, filePath);
-			if (!fs.existsSync(absoluteFilePath)) {
-				logger.warn(`[processSast] File ${absoluteFilePath} does not exist. Skipping.`);
-				return false;
-			}
-
-			return true; // Include this file in processing
-		});
-
-		// Process a subset or all files as needed
-		for (const [filePath, findings_] of filesToProcess) { // Adjust the slice as needed
+		let collectedEnvVariables = [];
+		for (const [filePath, findings_] of filesWithFindings) {
 			logger.info(`[processSast] Analyzing file: ${filePath}`);
-			if (alreadyProcessedFilesSet.has(filePath)) {
-				logger.info(`[processSast] File ${filePath} already processed. Skipping...`);
-				continue;
-			}
 			const absoluteFilePath = path.join(repositoryBasePath, filePath);
 			const sastForPrompt = [];
 			for (const [ruleId, lines] of Object.entries(findings_)) {
@@ -297,79 +232,69 @@ const processSastPerFile = async (codeVulnerabilities, repositoryBasePath) => {
 			}
 			if (sastForPrompt.length > 0) {
 				const { part: codeFile, totalLines } = await getCodeFromFile(absoluteFilePath);
+				if (totalLines < 500) continue;
 				logger.debug(`[processSast] File ${filePath} has ${totalLines} lines (allowed max: ${TOTAL_ALLOWED_LINES}).`);
 				let attemptsUsed = 0;
 				console.log(`[processSast] File ${filePath} has ${totalLines} lines (allowed max: ${TOTAL_ALLOWED_LINES}).`);
-				if (totalLines <= TOTAL_ALLOWED_LINES) {
-					const maxAttempts = 5;
-					let snippet = "";
+				// if (totalLines <= TOTAL_ALLOWED_LINES) {
+				const maxAttempts = 5;
+				let snippet = "";
 
-					let envVarNames = null;
-					while (attemptsUsed < maxAttempts && !snippet) {
-						attemptsUsed++;
-						envVarNames = null;
-						logger.debug(`[processSast] LLM attempt #${attemptsUsed} for file ${filePath}`);
-						console.log(`[processSast] LLM attempt #${attemptsUsed}`);
+				let envVarNames = null;
+				while (attemptsUsed < maxAttempts && !snippet) {
+					attemptsUsed++;
+					envVarNames = null;
+					logger.debug(`[processSast] LLM attempt #${attemptsUsed} for file ${filePath}`);
+					console.log(`[processSast] LLM attempt #${attemptsUsed}`)
 
-						try {
-							// if (totalLines >= TOTAL_ALLOWED_LINES) {
-							// 	const chunks = breakCodeIntoChunks(codeFile, TOTAL_ALLOWED_LINES);
-							// 	await applyChunkFixesSequentially(
-							// 		codeFile,
-							// 		chunks,
-							// 		sastForPrompt,
-							// 		queries,
-							// 		llm)
-							// } else {
-							// 	const response = await llm.sendMessage(
-							// 		queries.generateSASTFixTask(codeFile, sastForPrompt),
-							// 	);
-							// 	snippet = extractCodeBlock(response);
-							// }
-
+					try {
+						if (totalLines >= TOTAL_ALLOWED_LINES) {
+							const chunks = breakCodeIntoChunks(codeFile, TOTAL_ALLOWED_LINES);
+							await applyChunkFixesSequentially(
+								codeFile,
+								chunks,
+								sastForPrompt,
+								queries,
+								llm)
+						} else {
 							const response = await llm.sendMessage(
 								queries.generateSASTFixTask(codeFile, sastForPrompt),
 							);
 							snippet = extractCodeBlock(response);
-
-							console.warn(snippet);
-
-							const { ast } = parseCodeToAst(snippet);
-							envVarNames = extractEnvVarNamesFromAST(ast);
-
-							const lineCountResponse = snippet.split(/\r?\n/).length;
-							logger.debug(`[processSast] LLM snippet returned ${lineCountResponse} lines.`);
-
-							// Inject the fixed code
-							await injectCodePart(absoluteFilePath, snippet);
-							changedFiles.add(filePath);
-							logger.info(`[processSast] Successfully injected code snippet into ${filePath}.`);
-						} catch (error) {
-							console.log(error);
-							snippet = null;
-							if (attemptsUsed === maxAttempts) {
-								alreadyIgnoredFilesSet.add(filePath);
-							}
-							logger.warn(`[processSast] Attempt #${attemptsUsed} failed with error: ${error.message}`);
 						}
-					}
 
-					if (envVarNames && envVarNames.length > 0) {
-						collectedEnvVariables.push(...envVarNames);
-					}
+						fs.writeFileSync(
+							path.join(metaFilesFolderPath, `sast-${filePath}`),
+							snippet
+						);
 
-				} else {
-					alreadyIgnoredFilesSet.add(filePath);
+						const { ast } = parseCodeToAst(snippet);
+						envVarNames = extractEnvVarNamesFromAST(ast);
+							
+						const lineCountResponse = snippet.split(/\r?\n/).length;
+						logger.debug(`[processSast] LLM snippet returned ${lineCountResponse} lines.`);
+
+						// Inject the fixed code
+						await injectCodePart(absoluteFilePath, snippet);
+						changedFiles.add(filePath);
+						logger.info(`[processSast] Successfully injected code snippet into ${filePath}.`);
+					} catch (error) {
+						console.log(error);
+						logger.warn(`[processSast] Attempt #${attemptsUsed} failed with error: ${error.message}`);
+					}
 				}
-				// Append to processOutput
+
+				if (envVarNames && envVarNames.length > 0) {
+					collectedEnvVariables.push(...envVarNames);
+				}
+
+				// }
 				processOutput.push({
 					sast: sastForPrompt,
 					filePath,
 					attempts: attemptsUsed,
 					totalLines,
-				});
-			} else {
-				alreadyIgnoredFilesSet.add(filePath);
+				})
 			}
 		}
 
@@ -379,49 +304,26 @@ const processSastPerFile = async (codeVulnerabilities, repositoryBasePath) => {
 			changedFiles.add(envFilePath);
 		}
 
-		// Write updated processOutput to sast-OUTPUT.json
 		fs.writeFileSync(
-			outputPath,
+			path.join(metaFilesFolderPath, "sast-OUTPUT.json"),
 			JSON.stringify(processOutput, null, 2)
 		);
-		logger.info(`[processSast] Updated sast-OUTPUT.json with ${processOutput.length} entries.`);
-
-		// Write updated changedFiles to sast-processed-files.json
 		fs.writeFileSync(
-			processedFilesPath,
-			JSON.stringify([...changedFiles], null, 2)
-		);
-		logger.info(`[processSast] Updated sast-processed-files.json with ${changedFiles.size} files.`);
-
-		// Write updated alreadyIgnoredFilesSet to sast-ignored-files.json
-		fs.writeFileSync(
-			ignoredFilesPath,
-			JSON.stringify([...alreadyIgnoredFilesSet], null, 2)
-		);
-		logger.info(`[processSast] Updated sast-ignored-files.json with ${alreadyIgnoredFilesSet.size} files.`);
-
-		// Write updated collectedEnvVariables to sast-collectedEnvVariables.json
-		fs.writeFileSync(
-			collectedEnvVarsPath,
+			path.join(metaFilesFolderPath, "sast-collectedEnvVariables.json"),
 			JSON.stringify(collectedEnvVariables, null, 2)
 		);
-		logger.info(`[processSast] Updated sast-collectedEnvVariables.json with ${collectedEnvVariables.length} entries.`);
-
+		logger.info("[processSast] Wrote sast-OUTPUT.json");
+		
 		logger.info("[processSast] Violation processing complete.");
 		return changedFiles;
 	} catch (error) {
 		logger.error(`[processSast] Error during process: ${error.message}`);
-		// Attempt to write whatever is in processOutput
-		try {
-			fs.writeFileSync(
-				outputPath,
-				JSON.stringify(processOutput, null, 2)
-			);
-			logger.info(`[processSast] Wrote partial sast-OUTPUT.json with ${processOutput.length} entries.`);
-		} catch (writeError) {
-			logger.error(`[processSast] Failed to write sast-OUTPUT.json: ${writeError.message}`);
-		}
+		fs.writeFileSync(
+			path.join(metaFilesFolderPath, "sast-OUTPUT.json"),
+			JSON.stringify(processOutput, null, 2)
+		);
 		throw error;
 	}
 };
+
 export default processSastPerFile;

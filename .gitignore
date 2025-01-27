@@ -107,3 +107,4 @@ doc/*
 *.pyc
 
 /tmp*/*
+/meta-folder*/*

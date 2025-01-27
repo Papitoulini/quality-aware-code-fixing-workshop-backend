@@ -1,5 +1,5 @@
 import processors from "./processors/index.js";
-import { deleteFolder } from "#utils"
+// import { deleteFolder } from "#utils"
 
 const analyzer = async (sha) => {
 	try {

@@ -1,60 +1,29 @@
-const generateSASTFixTask = (codePart, codeVulnerabilities, startLine, endLine, language = "TypeScript") => {
-	const targetVulnerabilities = codeVulnerabilities.map((codeVulnerability) => {
-		const {
-			message,
-			severity,
-			metadata: {
-				cwe = null,
-				references = null,
-				vulnerability_class = null,
-			},
-			lines,
-		} = codeVulnerability;
-		return `
-****************************************************************
-- Message: ${message}
-- Severity: ${severity || 'Not specified'}
-- Weakness Enumeration: ${cwe?.join("/n")}
-- References: ${references?.join("/n")}
-- Vulnerability Class: ${vulnerability_class?.join("/n")}
-
-- Affected Lines: ${lines.map(({ start, end }) => start.line === end.line ? start.line : `${start.line} -> ${end.line}`).join(", ")}
-`}).join("");
+const generateSASTFixTask = (codeSnippet, vulnerabilities, language = "TypeScript") => {
+	// return "What is your porpuse here?";
+	const details = vulnerabilities.map(({ message, severity, metadata: { cwe, references, vulnerability_class }, lines }) => `
+Message: ${message}
+Severity: ${severity || 'Not specified'}
+CWE: ${cwe?.join(", ") || 'None'}
+References: ${references?.join(", ") || 'None'}
+Class: ${vulnerability_class?.join(", ") || 'None'}
+Lines: ${lines.map(({ start, end }) => start.line === end.line ? start.line : `${start.line}-${end.line}`).join(", ")}
+`).join("\n");
 
 	return `
-You are a coding expert specializing in resolving SAST violations. I have encountered the following issue:
-Please analyze and resolve it according to the provided details:
+You are a coding expert in ${language}. Fix the following vulnerabilities in this file:
 
-${targetVulnerabilities}
+${details}
 
 TASK:
-1. Copy the code snippet into your editor.
-2. Resolve the violation highlighted in the snippet.
-3. Return the ENTIRE *fixed* code snippet as a string within triple backticks.
-4. Correct the violation in the specified line without altering the original logic.
+1. Fix the issus mentioned above, in the provided code.
+4. Fix the specified issue only, preserving original formatting and logic.
+2. Return the FULL, FIXED file in a single block.
+3. Do NOT include any explanations or text outside the code block.
+4. If you encounter any env variables, replace them with process.env.VARIABLE_NAME.
+5. RESPOND ONLY WITH CODE and INLINE COMMENTS IF NEED. NOTHING ELSE
 
-IMPORTANT:
-- Return your ENTIRE answer as a string.
-- Do NOT provide any explanation or text outside the backticks.
-- Preserve the original code formatting as much as possible.
-- Ensure your response contains ONLY the *corrected code snippet* and nothing else.
-- **Avoid adding, removing, or significantly modifying brackets, braces, or parentheses** 
-  unless absolutely necessary to fix the violation.
-__________________________________________________________
-
-Focus on resolving the issue using best practices for the identified language and category.
-Do not include this metadata in your final response.
-
-FILE:
-\`\`\`${language}
-${codePart}
-\`\`\`
-
-EXAMPLE RESPONSE:
-\`\`\`${language}
-<corrected code snippet>
-\`\`\`
-__________________________________________________
+CODE:
+${codeSnippet}
 `.trim();
 };
 

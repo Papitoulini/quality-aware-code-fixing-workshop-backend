@@ -32,7 +32,7 @@ const runSast = async (repoPaths, githubOptions) => {
 				...githubOptions,
 			}
 
-			await gitInstance.afterProcess(violationsGithubOptions);
+			// await gitInstance.afterProcess(violationsGithubOptions);
 		} else {
 			logger.info("========= Info =========");
 			logger.info("No files changed - skipping PR creation.");

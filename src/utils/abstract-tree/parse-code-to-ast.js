@@ -5,36 +5,39 @@ import { parse } from "@babel/parser";
  * @param {string} codeString - The code snippet to parse.
  * @returns {Object} - An object containing an array of AST nodes parsed from the snippet.
  */
-const parseCodeToASTWithOptionalWrap = (codeString) => {
-	try {
-		// Try parsing without a wrapper
-		const ast = parse(codeString, {
-			sourceType: "module",
-			plugins: ["typescript", "jsx"],
-		});
-		// Return top-level nodes if successful
-		return { astNodes: ast.program.body };
-	} catch {
-		return { astNodes: null };
-		// If direct parsing fails, wrap the code in a dummy class
-		// const wrappedCode = `(${codeString})`;
-		// const wrappedAst = parse(wrappedCode, {
-		// 	sourceType: "module",
-		// 	plugins: ["typescript", "jsx"],
-		// });
+const parseCodeToAst = (codeString) => {
+	// Try parsing without a wrapper
+	const ast = parse(codeString, {
+		sourceType: "module",
+		plugins: [
+			"typescript",					// Support for TypeScript syntax
+			"jsx",								 // Support for JSX syntax (if needed)
+			["decorators-legacy"], // Support for legacy decorators
+			"classProperties",		 // Support for class properties (optional)
+		],
+	});
+	return { ast };
+	// } catch {
+	// 	return { astNodes: null };
+	// 	// If direct parsing fails, wrap the code in a dummy class
+	// 	// const wrappedCode = `(${codeString})`;
+	// 	// const wrappedAst = parse(wrappedCode, {
+	// 	// 	sourceType: "module",
+	// 	// 	plugins: ["typescript", "jsx"],
+	// 	// });
 
-		// const classDeclaration = wrappedAst.program.body.find(
-		// 	(node) => node.type === "ClassDeclaration" && node.id.name === "Dummy"
-		// );
+	// 	// const classDeclaration = wrappedAst.program.body.find(
+	// 	// 	(node) => node.type === "ClassDeclaration" && node.id.name === "Dummy"
+	// 	// );
 
-		// if (!classDeclaration) {
-		// 	throw new Error("Failed to parse code snippet with dummy class wrapper.");
-		// }
+	// 	// if (!classDeclaration) {
+	// 	// 	throw new Error("Failed to parse code snippet with dummy class wrapper.");
+	// 	// }
 
-		// // Extract nodes from the dummy class body
-		// const newNodes = classDeclaration.body.body;
-		// return { astNodes: newNodes };
-	}
+	// 	// // Extract nodes from the dummy class body
+	// 	// const newNodes = classDeclaration.body.body;
+	// 	// return { astNodes: newNodes };
+	// }
 };
 
-export default parseCodeToASTWithOptionalWrap;
+export default parseCodeToAst;

@@ -6,7 +6,7 @@ import fs from "node:fs/promises";
 const parseFileToAST = async (filePath) => {
 	const code = await fs.readFile(filePath, "utf8");
 	const ast = parse(code, {
-		sourceType: "module",
+		sourceType: "unambiguous",
 		plugins: ["typescript", "jsx"], // Add other plugins as needed
 	});
 	return { ast, code };
