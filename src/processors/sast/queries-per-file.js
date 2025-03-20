@@ -10,7 +10,8 @@ Lines: ${lines.map(({ start, end }) => start.line === end.line ? start.line : `$
 `).join("\n");
 
 	return `
-You are a coding expert in ${language}. Fix the following vulnerabilities in this file:
+You are a highly skilled software security expert and experienced
+developer specializing in secure coding practices in ${language}.
 
 ${details}
 

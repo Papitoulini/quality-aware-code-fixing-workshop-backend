@@ -4,13 +4,13 @@ import path from "node:path";
 import "dotenv/config.js";
 
 import { processViolationsPerFile } from "./violations/index.js"; 
-import { Github, MODEL, ATTEMPT } from "#utils";
+import { Github, ATTEMPT } from "#utils";
 import { logger } from "#logger";
 
-const runViolations = async (repoPaths, githubOptions) => {
+const runViolations = async (repoPaths, githubOptions, selectedFiles, name, model) => {
 	try {
 		const { token, authUrl, productionBranch } = githubOptions;
-		const newBranch = `${MODEL}-${ATTEMPT}-violations-fixes`;
+		const newBranch = `${model}-${name}-${ATTEMPT}-violations-fixes`;
 		const [localRepoPath, findingsPath] = repoPaths;
 
 		const analysisFindingsPath = path.resolve(findingsPath, "analysis.json");
@@ -20,20 +20,20 @@ const runViolations = async (repoPaths, githubOptions) => {
 		// // Create the GitHub client
 		const gitInstance = Github(token, authUrl, localRepoPath);
 		await gitInstance.preProcess(productionBranch, newBranch);
-		const changedFiles = await processViolationsPerFile(violations, localRepoPath);
+		const changedFiles = await processViolationsPerFile(violations, localRepoPath, selectedFiles, name);
 		// 6. If we actually changed some files, commit + push + open PR
 		if (changedFiles.size > 0) {
 			const changedArray = [...changedFiles];
 			const violationsGithubOptions = {
-				commitMsg: `${MODEL}-${ATTEMPT} Fixing code violations`,
-				prTitle: `${MODEL}-${ATTEMPT} Fix violations`,
-				prBody: `${MODEL}-${ATTEMPT} Automated fixes for code violations.`,
+				commitMsg: `${model}-${name}-${ATTEMPT} Fixing code violations`,
+				prTitle: `${model}-${name}-${ATTEMPT} Fix violations`,
+				prBody: `${model}-${name}-${ATTEMPT} Automated fixes for code violations.`,
 				newBranch,
 				changedArray,
 				...githubOptions,
 			}
 
-			// await gitInstance.afterProcess(violationsGithubOptions);
+			await gitInstance.afterProcess(violationsGithubOptions);
 		} else {
 			logger.info("========= Info =========");
 			logger.info("No files changed - skipping PR creation.");

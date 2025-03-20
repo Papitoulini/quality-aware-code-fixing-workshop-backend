@@ -1,8 +1,11 @@
 // parseFileForClasses.js
 import fs from "node:fs";
 import { parse } from "@babel/parser";
-import traverse from "@babel/traverse";
+import _traverse from "@babel/traverse";
+import _generate from "@babel/generator";
 
+const traverse = _traverse.default;
+const generate = _generate.default;
 /**
  * Parse the given file to extract information about classes and functions.
  *
@@ -71,4 +74,28 @@ export function parseFileForClassesAndFunctions(filePath) {
 	});
 
 	return collected;
+}
+
+export function splitCodeUsingBabel(code) {
+	// Parse the code into an AST.
+	const ast = parse(code, {
+		sourceType: "module", // Use "script" if not using ES modules.
+		plugins: [
+			"typescript", // Include if parsing TypeScript.
+			"jsx",        // Include if using JSX.
+		// Add additional plugins if needed.
+		]
+	});
+
+	// The top-level nodes (complete statements/blocks) are in ast.program.body.
+	const codeBlocks = ast.program.body.map(node => {
+		// Generate the code for each AST node.
+		const { code: generatedCode } = generate(node, {
+			retainLines: true, // Try to preserve line numbers.
+			compact: false
+		});
+		return generatedCode.trim();
+	});
+
+	return codeBlocks;
 }

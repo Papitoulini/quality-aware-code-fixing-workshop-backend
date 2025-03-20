@@ -31,8 +31,8 @@ const getIntroducedViolationsProps = async (currentCommitId, language, root, isM
 		commit: fromCommit._id,
 		language,
 		root,
-		// "configuration.applications": APPLICATION,
-		// "configuration.subanalyzersCompleted": { $all: APPLICATIONS[APPLICATION] },
+		"configuration.applications": APPLICATION,
+		"configuration.subanalyzersCompleted": { $all: APPLICATIONS[APPLICATION] },
 		hasError: false,
 		isEmpty: false,
 		archived: false,
@@ -47,9 +47,8 @@ const getIntroducedViolationsProps = async (currentCommitId, language, root, isM
 		isEmpty: false,
 		archived: false,
 	}).populate("commit").select("_id language internalId commit").lean().exec();
-	const { patches, changedFileNameMapping } = await getPatchedInfo(owner, repo, user, toCommitHash, type);
 
-	console.log(fromAnalysisDB, toAnalysisDB)
+	const { patches, changedFileNameMapping } = await getPatchedInfo(owner, repo, user, toCommitHash, type);
 
 	const fromAnalysis = await getCloudAnalysis(fromAnalysisDB,
 		{ isMaintainabilityPal, violations: true, metricsRecommendations: false });

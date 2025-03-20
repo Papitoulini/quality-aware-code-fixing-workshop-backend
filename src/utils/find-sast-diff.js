@@ -5,7 +5,7 @@ import fs from "node:fs";
 /**
  * Processes old violations and maps line numbers using patches.
  */
-const processOldSast = (sastFindings, patches, changedFileNameMapping) => {
+const processOldSast = (sastFindings = [], patches, changedFileNameMapping) => {
 	const processedSast = [];
 
 	for (const { start, end, path: originalFilePath, ...rest } of sastFindings) {

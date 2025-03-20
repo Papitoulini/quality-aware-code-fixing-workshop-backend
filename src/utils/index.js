@@ -21,8 +21,9 @@ export const MAX_SNIPPET_LINES = 100;
 export const CODE_SNIPPET_MARGIN = 3;
 export const MAX_HTTP_REQUEST_CHARS = 12_000;
 export const TOTAL_ALLOWED_LINES = MODEL === "claude" ? 300: 100;
+export const MAX_FILE_SIZE_ALLOWED_IN_MB = 10;
 
-export const ATTEMPT = "hole-file-process-03";
+export const ATTEMPT = "";
 export const LOCAL_FOLDER = "tmp_1";
 
 export const APPLICATIONS = {

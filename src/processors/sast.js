@@ -4,13 +4,13 @@ import path from "node:path";
 import "dotenv/config.js";
 
 import { processSastPerFile } from "./sast/index.js"; 
-import { Github, MODEL, ATTEMPT } from "#utils";
+import { Github, ATTEMPT } from "#utils";
 import { logger } from "#logger";
 
-const runSast = async (repoPaths, githubOptions) => {
+const runSast = async (repoPaths, githubOptions, selectedFiles, name, model) => {
 	try {
 		const { token, authUrl, productionBranch } = githubOptions;
-		const newBranch = `${MODEL}-${ATTEMPT}-sast-fixes`;
+		const newBranch = `${model}-${name}-${ATTEMPT}-sast-fixes`;
 		const [localRepoPath, findingsPath] = repoPaths;
 
 		const sastFindingsPath = path.resolve(findingsPath, "sast.json");
@@ -19,20 +19,20 @@ const runSast = async (repoPaths, githubOptions) => {
 		// // Create the GitHub client
 		const gitInstance = Github(token, authUrl, localRepoPath);
 		await gitInstance.preProcess(productionBranch, newBranch);
-		const changedFiles = await processSastPerFile(sast, localRepoPath);
+		const changedFiles = await processSastPerFile(sast, localRepoPath, selectedFiles, name);
 		// 6. If we actually changed some files, commit + push + open PR
 		if (changedFiles.size > 0) {
 			const changedArray = [...changedFiles];
 			const violationsGithubOptions = {
-				commitMsg: `${MODEL}-${ATTEMPT} Fixing sast`,
-				prTitle: `${MODEL}-${ATTEMPT} Fix sast`,
-				prBody: `${MODEL}-${ATTEMPT} Automated fixes for sast`,
+				commitMsg: `${model}-${name}-${ATTEMPT} Fixing sast`,
+				prTitle: `${model}-${name}-${ATTEMPT} Fix sast`,
+				prBody: `${model}-${name}-${ATTEMPT} Automated fixes for sast`,
 				newBranch,
 				changedArray,
 				...githubOptions,
 			}
 
-			// await gitInstance.afterProcess(violationsGithubOptions);
+			await gitInstance.afterProcess(violationsGithubOptions);
 		} else {
 			logger.info("========= Info =========");
 			logger.info("No files changed - skipping PR creation.");

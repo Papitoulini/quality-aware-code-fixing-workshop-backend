@@ -71,7 +71,7 @@ function transformViolations(violations_) {
  * 4) Send them to LLM for potential fixes,
  * 5) Inject the returned code snippet back into the file.
  */
-const processViolations = async (violations, repositoryBasePath) => {
+const processViolations = async (violations, repositoryBasePath, selectedFiles) => {
 	logger.info("[processViolations] Starting violation processing...");
 	const metaFilesFolderPath = "meta-folder";
 
@@ -82,34 +82,34 @@ const processViolations = async (violations, repositoryBasePath) => {
 	}
 
 	// Define paths for violation-related files
-	const processedFilesPath = path.join(metaFilesFolderPath, "violations-processed-files.json");
-	const ignoredFilesPath = path.join(metaFilesFolderPath, "violations-ignored-files.json");
-	const outputPath = path.join(metaFilesFolderPath, "violations-OUTPUT.json");
+	// const processedFilesPath = path.join(metaFilesFolderPath, "violations-processed-files.json");
+	// const ignoredFilesPath = path.join(metaFilesFolderPath, "violations-ignored-files.json");
+	// const outputPath = path.join(metaFilesFolderPath, "violations-OUTPUT.json");
 
 	// Load already processed and ignored files
-	const alreadyProcessedFilesUnparsed = fs.existsSync(processedFilesPath);
-	const alreadyProcessedFiles = alreadyProcessedFilesUnparsed
-		? JSON.parse(fs.readFileSync(processedFilesPath, 'utf8'))
-		: [];
-	const alreadyIgnoredFilesUnparsed = fs.existsSync(ignoredFilesPath);
-	const alreadyIgnoredFiles = alreadyIgnoredFilesUnparsed
-		? JSON.parse(fs.readFileSync(ignoredFilesPath, 'utf8'))
-		: [];
-	const alreadyIgnoredFilesSet = new Set(alreadyIgnoredFiles);
-	const alreadyProcessedFilesSet = new Set([...alreadyProcessedFiles, ...alreadyIgnoredFiles]);
-	const changedFiles = new Set(alreadyProcessedFiles);
+	// const alreadyProcessedFilesUnparsed = fs.existsSync(processedFilesPath);
+	// const alreadyProcessedFiles = alreadyProcessedFilesUnparsed
+	// 	? JSON.parse(fs.readFileSync(processedFilesPath, 'utf8'))
+	// 	: [];
+	// const alreadyIgnoredFilesUnparsed = fs.existsSync(ignoredFilesPath);
+	// const alreadyIgnoredFiles = alreadyIgnoredFilesUnparsed
+	// 	? JSON.parse(fs.readFileSync(ignoredFilesPath, 'utf8'))
+	// 	: [];
+	// const alreadyIgnoredFilesSet = new Set(alreadyIgnoredFiles);
+	// const alreadyProcessedFilesSet = new Set([...alreadyProcessedFiles, ...alreadyIgnoredFiles]);
+	const changedFiles = new Set();
 
 	// Load existing processOutput if available
 	let processOutput = [];
-	if (fs.existsSync(outputPath)) {
-		try {
-			processOutput = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
-			logger.debug(`[processViolations] Loaded existing processOutput with ${processOutput.length} entries.`);
-		} catch {
-			logger.warn(`[processViolations] Failed to parse existing violations-OUTPUT.json. Initializing as empty array.`);
-			processOutput = [];
-		}
-	}
+	// if (fs.existsSync(outputPath)) {
+	// 	try {
+	// 		processOutput = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
+	// 		logger.debug(`[processViolations] Loaded existing processOutput with ${processOutput.length} entries.`);
+	// 	} catch {
+	// 		logger.warn(`[processViolations] Failed to parse existing violations-OUTPUT.json. Initializing as empty array.`);
+	// 		processOutput = [];
+	// 	}
+	// }
 
 	try {
 		logger.debug(`[processViolations] Number of initial violations: ${Object.keys(violations).length}`);
@@ -142,34 +142,45 @@ const processViolations = async (violations, repositoryBasePath) => {
 		// Define files to process by filtering out already processed or ignored files
 		const filesToProcess = Object.entries(filesMap).filter(([filePath, findings_]) => {
 			// Skip already processed files
-			if (alreadyProcessedFilesSet.has(filePath)) {
-				logger.info(`[processViolations] File ${filePath} already processed. Skipping...`);
+			const cleanedFilePath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
+
+			if (selectedFiles.includes(cleanedFilePath)) {
+				logger.info(`[processViolations] File ${cleanedFilePath} is selected for processing.`);
+				return true;
+			} else {
+				logger.info(`[processViolations] File ${cleanedFilePath} is not selected for processing. Skipping...`);
 				return false;
 			}
 
-			// Skip files with no findings
-			if (!findings_ || Object.keys(findings_).length === 0) {
-				logger.info(`[processViolations] File ${filePath} has no findings. Skipping...`);
-				return false;
-			}
+			// // Skip already processed files
+			// if (alreadyProcessedFilesSet.has(filePath)) {
+			// 	logger.info(`[processViolations] File ${filePath} already processed. Skipping...`);
+			// 	return false;
+			// }
 
-			// Skip files that do not exist
-			const absoluteFilePath = path.join(repositoryBasePath, filePath);
-			if (!fs.existsSync(absoluteFilePath)) {
-				logger.warn(`[processViolations] File ${absoluteFilePath} does not exist. Skipping.`);
-				return false;
-			}
+			// // Skip files with no findings
+			// if (!findings_ || Object.keys(findings_).length === 0) {
+			// 	logger.info(`[processViolations] File ${filePath} has no findings. Skipping...`);
+			// 	return false;
+			// }
 
-			return true; // Include this file in processing
+			// // Skip files that do not exist
+			// const absoluteFilePath = path.join(repositoryBasePath, filePath);
+			// if (!fs.existsSync(absoluteFilePath)) {
+			// 	logger.warn(`[processViolations] File ${absoluteFilePath} does not exist. Skipping.`);
+			// 	return false;
+			// }
+
+			// return true; // Include this file in processing
 		});
 
 		// Process a subset or all files as needed
 		for (const [filePath, findings_] of filesToProcess) { // Removed slice for full processing
 			logger.info(`[processViolations] Analyzing file: ${filePath}`);
-			if (alreadyProcessedFilesSet.has(filePath)) {
-				logger.info(`[processViolations] File ${filePath} already processed. Skipping...`);
-				continue;
-			}
+			// if (alreadyProcessedFilesSet.has(filePath)) {
+			// 	logger.info(`[processViolations] File ${filePath} already processed. Skipping...`);
+			// 	continue;
+			// }
 			const absoluteFilePath = path.join(repositoryBasePath, filePath);
 			const violationsForPrompt = [];
 
@@ -212,14 +223,14 @@ const processViolations = async (violations, repositoryBasePath) => {
 							logger.warn(`[processViolations] Attempt #${attemptsUsed} failed with error: ${error.message}`);
 							snippet = null;
 							if (attemptsUsed === maxAttempts) {
-								alreadyIgnoredFilesSet.add(filePath);
+								// alreadyIgnoredFilesSet.add(filePath);
 								logger.warn(`[processViolations] Max attempts reached for file ${filePath}. Marking as ignored.`);
 							}
 						}
 					}
 				} else {
 					logger.warn(`[processViolations] Skipping file ${filePath}; it exceeds the allowed line limit.`);
-					alreadyIgnoredFilesSet.add(filePath);
+					// alreadyIgnoredFilesSet.add(filePath);
 				}
 				// Append to processOutput
 				processOutput.push({
@@ -234,25 +245,25 @@ const processViolations = async (violations, repositoryBasePath) => {
 		}
 
 		// Write updated processOutput to violations-OUTPUT.json
-		fs.writeFileSync(
-			outputPath,
-			JSON.stringify(processOutput, null, 2)
-		);
-		logger.info(`[processViolations] Updated violations-OUTPUT.json with ${processOutput.length} entries.`);
+		// fs.writeFileSync(
+		// 	// outputPath,
+		// 	JSON.stringify(processOutput, null, 2)
+		// );
+		// logger.info(`[processViolations] Updated violations-OUTPUT.json with ${processOutput.length} entries.`);
 
 		// Write updated changedFiles to violations-processed-files.json
-		fs.writeFileSync(
-			processedFilesPath,
-			JSON.stringify([...changedFiles], null, 2)
-		);
-		logger.info(`[processViolations] Updated violations-processed-files.json with ${changedFiles.size} files.`);
+		// fs.writeFileSync(
+		// 	// processedFilesPath,
+		// 	JSON.stringify([...changedFiles], null, 2)
+		// );
+		// logger.info(`[processViolations] Updated violations-processed-files.json with ${changedFiles.size} files.`);
 
 		// Write updated alreadyIgnoredFilesSet to violations-ignored-files.json
-		fs.writeFileSync(
-			ignoredFilesPath,
-			JSON.stringify([...alreadyIgnoredFilesSet], null, 2)
-		);
-		logger.info(`[processViolations] Updated violations-ignored-files.json with ${alreadyIgnoredFilesSet.size} files.`);
+		// fs.writeFileSync(
+		// 	// ignoredFilesPath,
+		// 	// JSON.stringify([...alreadyIgnoredFilesSet], null, 2)
+		// );
+		// logger.info(`[processViolations] Updated violations-ignored-files.json with ${alreadyIgnoredFilesSet.size} files.`);
 		logger.info("[processViolations] Violation processing complete.");
 		return changedFiles;
 	} catch (error) {
@@ -260,7 +271,7 @@ const processViolations = async (violations, repositoryBasePath) => {
 		// Attempt to write whatever is in processOutput
 		try {
 			fs.writeFileSync(
-				outputPath,
+				// outputPath,
 				JSON.stringify(processOutput, null, 2)
 			);
 			logger.info(`[processViolations] Wrote partial violations-OUTPUT.json with ${processOutput.length} entries.`);
