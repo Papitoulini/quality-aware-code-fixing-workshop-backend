@@ -89,13 +89,3 @@ export const getAnalysisFolderFile = async (dbAnalysis, fileName, options) => {
 		return file;
 	} catch (error) { console.log(error); return file; }
 };
-
-// Used in migration scripts
-export const uploadFile = async (file, bucketName = "cyclopt-platform") => {
-	try {
-		const { path: filePath, content } = file;
-
-		await storage.bucket(bucketName).file(filePath).save(JSON.stringify(content));
-		return true;
-	} catch { return false; }
-};

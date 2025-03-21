@@ -75,6 +75,7 @@
   "devDependencies": {
     "ava": "^6.1.2",
     "eslint": "^8.57.1",
+    "knip": "^5.46.0",
     "nodemon": "^3.1.0",
     "test-listen": "^1.1.0"
   },

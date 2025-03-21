@@ -1,0 +1,6 @@
+{
+    "entryFiles": ["src/runner.js", "server.js"],
+    "ignore": [
+        "tmp_1/**"
+    ]
+}

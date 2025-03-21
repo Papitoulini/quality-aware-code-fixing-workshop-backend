@@ -3,14 +3,15 @@ import fs from "node:fs";
 import path from "node:path";
 import "dotenv/config.js";
 
-import { processViolationsPerFile } from "./violations/index.js"; 
-import { Github, ATTEMPT } from "#utils";
+import { processViolationsPerFile } from "./violations/index.js";
+
+import { Github, ATTEMPT, MODEL } from "#utils";
 import { logger } from "#logger";
 
-const runViolations = async (repoPaths, githubOptions, selectedFiles, name, model) => {
+const runViolations = async (repoPaths, githubOptions, selectedFiles, name = "default_name", md = MODEL) => {
 	try {
 		const { token, authUrl, productionBranch } = githubOptions;
-		const newBranch = `${model}-${name}-${ATTEMPT}-violations-fixes`;
+		const newBranch = `${md}-${name}-${ATTEMPT}-violations-fixes`;
 		const [localRepoPath, findingsPath] = repoPaths;
 
 		const analysisFindingsPath = path.resolve(findingsPath, "analysis.json");
@@ -25,9 +26,9 @@ const runViolations = async (repoPaths, githubOptions, selectedFiles, name, mode
 		if (changedFiles.size > 0) {
 			const changedArray = [...changedFiles];
 			const violationsGithubOptions = {
-				commitMsg: `${model}-${name}-${ATTEMPT} Fixing code violations`,
-				prTitle: `${model}-${name}-${ATTEMPT} Fix violations`,
-				prBody: `${model}-${name}-${ATTEMPT} Automated fixes for code violations.`,
+				commitMsg: `${md}-${name}-${ATTEMPT} Fixing code violations`,
+				prTitle: `${md}-${name}-${ATTEMPT} Fix violations`,
+				prBody: `${md}-${name}-${ATTEMPT} Automated fixes for code violations.`,
 				newBranch,
 				changedArray,
 				...githubOptions,

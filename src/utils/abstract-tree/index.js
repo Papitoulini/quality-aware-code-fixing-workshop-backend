@@ -1,5 +1,2 @@
-export { default as findParentNode} from "./find-parent-node.js"
-export { default as parseFileToAST} from "./parse-file-to-ast.js"
 export { default as parseCodeToAst} from "./parse-code-to-ast.js"
-export { default as collectClassesAndFunctions} from "./collect-classes-and-functions.js"
-export { default as breakCodeIntoChunks} from "./break-code-into-chunks.js"
+export { default as breakCodeIntoChunkNodes} from "./chunk_node.js"

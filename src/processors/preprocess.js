@@ -11,9 +11,12 @@ const { Analysis, Commit } = models;
 
 const { GITHUB_TOKEN } = process.env;
 
+const subanalyzers = ["sast", "violations"];
+
 const preprocess = async (sha) => {
 	try {
 		const token = GITHUB_TOKEN;
+
 		const {
 			_id: commitId,
 			// repositories: [{ owner, name, productionBranch, addedBy: { _id: userId, github: { token }, username } }],
@@ -28,7 +31,12 @@ const preprocess = async (sha) => {
 			.lean();
 
 		logger.info(`General Info: ${JSON.stringify({commitId, owner, name, sha, userId, username}, null, 2)}`);
-		const analysis = await Analysis.findOne({ commit: commitId, language, pending: true }).lean();
+		const analysis = await Analysis.findOne({
+			commit: commitId,
+			language,
+			"configuration.subanalyzersCompleted": { $all: subanalyzers },
+			"configuration.subanalyzersFailed": { $nin: subanalyzers },
+		}).lean();
 
 		const authUrl = constructAuthUrl(token, owner, name);
 		const localPath = path.resolve(LOCAL_FOLDER, analysis.internalId);
@@ -62,7 +70,7 @@ const preprocess = async (sha) => {
 			const findings = { analysis, clones, vulnerabilities, analysisResults, sast };
 
 			for (const [key, value] of Object.entries(findings)) {
-				fs.writeFileSync(path.resolve(findingsPath, `${key}.json`), JSON.stringify(value, null, 2));
+				fs.writeFileSync(path.resolve(findingsPath, `${key}.json`), JSON.stringify(value || null, null, 2));
 			}
 		}
 

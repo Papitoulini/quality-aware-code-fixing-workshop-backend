@@ -4,13 +4,13 @@ import path from "node:path";
 import "dotenv/config.js";
 
 import { processSastPerFile } from "./sast/index.js"; 
-import { Github, ATTEMPT } from "#utils";
+import { Github, ATTEMPT, MODEL } from "#utils";
 import { logger } from "#logger";
 
-const runSast = async (repoPaths, githubOptions, selectedFiles, name, model) => {
+const runSast = async (repoPaths, githubOptions, selectedFiles, name = "default_name", md = MODEL) => {
 	try {
 		const { token, authUrl, productionBranch } = githubOptions;
-		const newBranch = `${model}-${name}-${ATTEMPT}-sast-fixes`;
+		const newBranch = `${md}-${name}-${ATTEMPT}-sast-fixes`;
 		const [localRepoPath, findingsPath] = repoPaths;
 
 		const sastFindingsPath = path.resolve(findingsPath, "sast.json");
@@ -24,9 +24,9 @@ const runSast = async (repoPaths, githubOptions, selectedFiles, name, model) => 
 		if (changedFiles.size > 0) {
 			const changedArray = [...changedFiles];
 			const violationsGithubOptions = {
-				commitMsg: `${model}-${name}-${ATTEMPT} Fixing sast`,
-				prTitle: `${model}-${name}-${ATTEMPT} Fix sast`,
-				prBody: `${model}-${name}-${ATTEMPT} Automated fixes for sast`,
+				commitMsg: `${md}-${name}-${ATTEMPT} Fixing sast`,
+				prTitle: `${md}-${name}-${ATTEMPT} Fix sast`,
+				prBody: `${md}-${name}-${ATTEMPT} Automated fixes for sast`,
 				newBranch,
 				changedArray,
 				...githubOptions,

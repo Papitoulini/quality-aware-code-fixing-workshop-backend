@@ -44,7 +44,7 @@ const findUniqueBestFuzzyMatchPairs = (fromArray, toArray, startingFromLine, sta
 	return pairs;
 };
 
-export const processFiles = (files, patches) => {
+const processFiles = (files, patches) => {
 	const patchRegex = /@@\s*-(\d+),\d*\s\+(\d+),?\d*\s@@(.*?)(?=(\r?\n@@\s*-\d+,\d+\s\+\d+,\d+\s@@|$))/gs;
 
 	// const allPatchSections = [];

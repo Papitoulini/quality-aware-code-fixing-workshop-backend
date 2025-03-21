@@ -3,11 +3,18 @@
 import path from "node:path";
 import fs from "node:fs";
 import _traverse from "@babel/traverse";
-
 const traverse = _traverse.default;
 
 import queries from "./queries-per-file.js";
-import { getCodeFromFile, LLM, injectCodePart, extractCodeBlock, TOTAL_ALLOWED_LINES, parseCodeToAst } from "#utils";
+import {
+	getCodeFromFile,
+	breakCodeIntoChunkNodes,
+	LLM,
+	injectCodePart,
+	extractCodeBlock,
+	TOTAL_ALLOWED_LINES,
+	parseCodeToAst
+} from "#utils";
 import { logger } from "#logger";
 
 /**
@@ -16,133 +23,90 @@ import { logger } from "#logger";
  * @returns {string|null} - The path to the entry file or null if not found.
  */
 function findEntryPoint(repoBasePath) {
-	const packageJsonPath = path.join(repoBasePath, 'package.json');
+	const packageJsonPath = path.join(repoBasePath, "package.json");
 	if (fs.existsSync(packageJsonPath)) {
-		const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+		const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 		let mainFile = packageJson.main;
-	
+
 		// If main exists and ends with .js, attempt to map to a .ts source file.
-		if (mainFile && mainFile.endsWith('.js')) {
-		// Replace .js with .ts and common build folders with src
-			let candidate = mainFile.replace(/\.js$/, '.ts');
-			candidate = candidate.replace(/^(dist|build)\//, 'src/');
+		if (mainFile && mainFile.endsWith(".js")) {
+			// Replace .js with .ts and common build folders with src
+			let candidate = mainFile.replace(/\.js$/, ".ts");
+			candidate = candidate.replace(/^(dist|build)\//, "src/");
 			const candidatePath = path.join(repoBasePath, candidate);
 			if (fs.existsSync(candidatePath)) {
 				return candidatePath;
 			}
 		}
 	}
-	
+
 	// Fallback heuristics for common TypeScript entry points.
 	const commonEntries = [
-		path.join(repoBasePath, 'src', 'index.ts'),
-		path.join(repoBasePath, 'src', 'main.ts'),
-		path.join(repoBasePath, 'src', 'main.ts'),
-		path.join(repoBasePath, 'index.ts'),
-		path.join(repoBasePath, 'server.ts')
+		path.join(repoBasePath, "src", "index.ts"),
+		path.join(repoBasePath, "src", "main.ts"),
+		path.join(repoBasePath, "index.ts"),
+		path.join(repoBasePath, "server.ts")
 	];
-	
+
 	for (const entry of commonEntries) {
 		if (fs.existsSync(entry)) {
 			return entry;
 		}
 	}
-	
+
 	return null;
 }
-	
+
 /**
-	 * Injects dotenv configuration into the entry point of a TypeScript repo if not already present.
-	 * @param {string} repositoryBasePath - The base path of the target repository.
-	 */
+ * Injects dotenv configuration into the entry point of a TypeScript repo if not already present.
+ * @param {string} repositoryBasePath - The base path of the target repository.
+ */
 function injectDotenvConfiguration(repositoryBasePath) {
 	const entryFilePath = findEntryPoint(repositoryBasePath);
 	if (!entryFilePath) {
-		console.error('Entry point not found in repository.');
+		console.error("Entry point not found in repository.");
 		return;
 	}
-	
+
 	console.log(`Found entry point at: ${entryFilePath}`);
-	
-	let fileContent = fs.readFileSync(entryFilePath, 'utf8');
-	
+	let fileContent = fs.readFileSync(entryFilePath, "utf8");
+
 	// Check if dotenv is already imported or configured
 	if (fileContent.includes("dotenv.config()") || fileContent.includes("import * as dotenv")) {
-		console.log('dotenv already configured in the entry file.');
+		console.log("dotenv already configured in the entry file.");
 		return;
 	}
-	
+
 	// Prepare dotenv injection code
 	const dotenvSetup = `import * as dotenv from 'dotenv';\ndotenv.config();\n\n`;
-	
 	// Inject at the top of the file
 	fileContent = dotenvSetup + fileContent;
-	
 	// Write the modified content back to the entry file
-	fs.writeFileSync(entryFilePath, fileContent, 'utf8');
+	fs.writeFileSync(entryFilePath, fileContent, "utf8");
 	console.log(`Injected dotenv configuration into ${entryFilePath}`);
-}
-
-const transformCodeVulnerabilities = (codeVulnerabilities) => {
-	logger.debug("[processSast] Transforming violations into aggregated maps...");
-	const aggregatedVulnerabilitiesMap = {};
-	const aggregatedFilesMap = {};
-	
-	for (const codeVulnerability of codeVulnerabilities) {
-		// Destructure to separate `files` from other properties.
-		const { path, start, end, ...otherProps } = codeVulnerability;
-	
-		// Use 'message' as our unique key (similar to 'ruleId' in the original).
-		const messageKey = codeVulnerability.message || "N/A";
-	
-		// If this message hasn't been added to aggregatedVulnerabilitiesMap, store it.
-		if (!aggregatedVulnerabilitiesMap[messageKey]) {
-			aggregatedVulnerabilitiesMap[messageKey] = { ...otherProps };
-		}
-		// Optional: if multiple violations share the same message, handle merging here if needed.
-	
-		// Process the `files` array for the current violation.
-		// Initialize an object for this filePath if not already present.
-		if (!aggregatedFilesMap[path]) {
-			aggregatedFilesMap[path] = {};
-		}
-		const fileLinesMap = aggregatedFilesMap[path];
-	
-		// Initialize an array for this messageKey if not present.
-		if (!fileLinesMap[messageKey]) {
-			fileLinesMap[messageKey] = [];
-		}
-	
-		// Push the `{ start, end }` object for this file/violation combination.
-		fileLinesMap[messageKey].push({ start, end });
-	}
-	
-	logger.debug(`[processSast] Transformation result: ${Object.keys(aggregatedFilesMap).length} file(s) with violations`);
-	return {
-		vulnerabilitiesMap: aggregatedVulnerabilitiesMap,
-		filesMap: aggregatedFilesMap
-	};
 }
 
 /**
  * Writes environment variables to a file in .env format.
- * @param envVarNames - Array of environment variable names.
- * @param filePath - The path of the file to write the variables.
+ * @param {string[]} envVarNames - Array of environment variable names.
+ * @param {string} repositoryBasePath - The base path of the repository.
+ * @returns {string} - The relative path of the .env.example file created/updated.
  */
 const writeEnvVariablesToFile = (envVarNames, repositoryBasePath) => {
 	// Format each variable as VARIABLE_NAME=""
 	const filePath = ".env.example";
 	const absoluteFilePath = path.join(repositoryBasePath, filePath);
-	const lines = envVarNames.map(varName => `${varName}=""`);
-  
+
+	const uniqueVarNames = [...new Set(envVarNames)];
+	const lines = uniqueVarNames.map((varName) => `${varName}=""`);
+
 	// Join all lines with a newline character
-	const fileContent = lines.join('\n');
-  
-	// Write the content to the specified file
-	fs.writeFileSync(absoluteFilePath, fileContent, 'utf8');
+	const fileContent = lines.join("\n");
+	fs.writeFileSync(absoluteFilePath, fileContent, "utf8");
+
 	console.log(`Environment variables written to ${absoluteFilePath}`);
 	return filePath;
-}
+};
 
 /**
  * Traverses the AST to extract environment variable names used in the code.
@@ -151,7 +115,6 @@ const writeEnvVariablesToFile = (envVarNames, repositoryBasePath) => {
  */
 const extractEnvVarNamesFromAST = (ast) => {
 	const envVarNames = new Set();
-
 	if (!ast) return [];
 
 	traverse(ast, {
@@ -159,11 +122,10 @@ const extractEnvVarNamesFromAST = (ast) => {
 			// Catch direct usages like process.env.VAR or process.env["VAR"]
 			const { node } = path;
 			if (
-				node.object &&
-        node.object.type === 'MemberExpression' &&
-        node.object.object.name === 'process' &&
-        node.object.property.name === 'env' &&
-        ((node.property.type === 'Identifier') || (node.property.type === 'StringLiteral'))
+				node.object?.type === "MemberExpression" &&
+				node.object.object?.name === "process" &&
+				node.object.property?.name === "env" &&
+				(node.property.type === "Identifier" || node.property.type === "StringLiteral")
 			) {
 				const varName = node.property.name || node.property.value;
 				if (varName) envVarNames.add(varName);
@@ -173,18 +135,17 @@ const extractEnvVarNamesFromAST = (ast) => {
 			// Catch destructuring: const { var1, var2 } = process.env;
 			const { node } = path;
 			if (
-				node.init &&
-        node.init.type === 'MemberExpression' &&
-        node.init.object.name === 'process' &&
-        node.init.property.name === 'env' &&
-        node.id.type === 'ObjectPattern'
+				node.init?.type === "MemberExpression" &&
+				node.init.object?.name === "process" &&
+				node.init.property?.name === "env" &&
+				node.id.type === "ObjectPattern"
 			) {
 				for (const prop of node.id.properties) {
-					if (prop.type === 'ObjectProperty') {
+					if (prop.type === "ObjectProperty") {
 						let varName = null;
-						if (prop.key.type === 'Identifier') {
+						if (prop.key.type === "Identifier") {
 							varName = prop.key.name;
-						} else if (prop.key.type === 'StringLiteral') {
+						} else if (prop.key.type === "StringLiteral") {
 							varName = prop.key.value;
 						}
 						if (varName) envVarNames.add(varName);
@@ -195,241 +156,255 @@ const extractEnvVarNamesFromAST = (ast) => {
 	});
 
 	return [...envVarNames];
+};
+
+/**
+ * Transform raw vulnerability objects into aggregated maps.
+ * @param {object[]} codeVulnerabilities - Array of vulnerability objects (with path, start, end, message, etc.)
+ * @returns {{ vulnerabilitiesMap: object, filesMap: object }}
+ */
+const transformCodeVulnerabilities = (codeVulnerabilities) => {
+	logger.debug("[processSast] Transforming violations into aggregated maps...");
+	const aggregatedVulnerabilitiesMap = {};
+	const aggregatedFilesMap = {};
+
+	for (const codeVulnerability of codeVulnerabilities) {
+		// Destructure to separate `path`, `start`, `end`, from other properties.
+		const { path: filePath, start, end, ...otherProps } = codeVulnerability;
+		// Use 'message' as our unique key (similar to 'ruleId' in the original).
+		const messageKey = codeVulnerability.message || "N/A";
+
+		// If this message hasn't been added to aggregatedVulnerabilitiesMap, store it.
+		if (!aggregatedVulnerabilitiesMap[messageKey]) {
+			aggregatedVulnerabilitiesMap[messageKey] = { ...otherProps };
+		}
+
+		// Process the path + start/end lines
+		if (!aggregatedFilesMap[filePath]) {
+			aggregatedFilesMap[filePath] = {};
+		}
+
+		const fileLinesMap = aggregatedFilesMap[filePath];
+		if (!fileLinesMap[messageKey]) {
+			fileLinesMap[messageKey] = [];
+		}
+
+		fileLinesMap[messageKey].push({ start, end });
+	}
+
+	logger.debug(
+		`[processSast] Transformation result: ${Object.keys(aggregatedFilesMap).length} file(s) with vulnerabilities`
+	);
+
+	return {
+		vulnerabilitiesMap: aggregatedVulnerabilitiesMap,
+		filesMap: aggregatedFilesMap
+	};
+};
+
+/**
+ * Process a smaller file (<= TOTAL_ALLOWED_LINES) in a single LLM call (with retries).
+ * Returns the updated snippet and extracted environment variables, if any.
+ */
+async function processSmallFileForSAST(absoluteFilePath, codeFile, sastForPrompt, llm) {
+	const maxAttempts = 5;
+	let attemptsUsed = 0;
+	let snippet = "";
+	let envVarNames = [];
+
+	while (attemptsUsed < maxAttempts && !snippet) {
+		attemptsUsed++;
+		logger.debug(
+			`[processSast] LLM attempt #${attemptsUsed} (small file) for ${absoluteFilePath}`
+		);
+
+		try {
+			const response = await llm.sendMessage(
+				queries.generateSASTFixTask(codeFile, sastForPrompt)
+			);
+			snippet = extractCodeBlock(response) || codeFile;
+			const { ast } = parseCodeToAst(snippet);
+
+			// Extract environment variables
+			envVarNames = extractEnvVarNamesFromAST(ast);
+			await injectCodePart(absoluteFilePath, snippet);
+
+			logger.info(`[processSast] Successfully injected updated code into ${absoluteFilePath}.`);
+			return { snippet, envVarNames };
+		} catch (error) {
+			logger.warn(
+				`[processSast] Attempt #${attemptsUsed} failed for ${absoluteFilePath}: ${error.message}`
+			);
+			if (attemptsUsed === maxAttempts) {
+				logger.error(`[processSast] Max attempts reached for ${absoluteFilePath}.`);
+			}
+		}
+	}
+
+	return { snippet: "", envVarNames };
 }
 
-const processSastPerFile = async (codeVulnerabilities, repositoryBasePath, selectedFiles) => {
-	logger.info("[processSast] Starting sast processing...");
+/**
+ * Process a large file (> TOTAL_ALLOWED_LINES) by breaking it into AST chunks.
+ * Returns the updated snippet (concatenation of chunk responses) and extracted environment variables.
+ */
+async function processLargeFileForSAST(absoluteFilePath, codeFile, sastForPrompt, llm) {
+	const maxAttempts = 5;
+	let attemptsUsed = 0;
+	let combinedSnippet = "";
+	let envVarNames = [];
+
+	const chunks = breakCodeIntoChunkNodes(codeFile);
+	// (Optional) Write out original and reassembled code for debugging
+	fs.writeFileSync("old-large.js", codeFile);
+	const reassembled = chunks.map((chunk) => chunk.codePart).join("\n");
+	fs.writeFileSync("new-large.js", reassembled);
+
+	while (attemptsUsed < maxAttempts && !combinedSnippet) {
+		attemptsUsed++;
+		logger.debug(
+			`[processSast] LLM chunk processing attempt #${attemptsUsed} for ${absoluteFilePath}`
+		);
+
+		let localSnippet = ""; // build up chunk-by-chunk for this pass
+
+		// Process each chunk sequentially
+		for (const chunk of chunks) {
+			const { codePart, startLine, endLine } = chunk;
+			const localFindings = sastForPrompt.filter((v) =>
+				v.lines.some((range) => range.start.line >= startLine && range.end.line <= endLine)
+			);
+
+			if (localFindings.length === 0) {
+				localSnippet += codePart;
+				continue;
+			}
+
+			try {
+				const response = await llm.sendMessage(
+					queries.generateSASTFixTask(codePart, localFindings)
+				);
+				const chunkSnippet = extractCodeBlock(response);
+				localSnippet += chunkSnippet ? `\n\n${chunkSnippet}` : codePart;
+			} catch (error) {
+				logger.warn(
+					`[processSast] Error processing chunk (${startLine}-${endLine}) of ${absoluteFilePath}: ${error.message}. Using original chunk.`
+				);
+				localSnippet += codePart;
+			}
+		}
+
+		try {
+			const { ast } = parseCodeToAst(localSnippet);
+			envVarNames = extractEnvVarNamesFromAST(ast);
+			await injectCodePart(absoluteFilePath, localSnippet);
+			combinedSnippet = localSnippet;
+			logger.info(`[processSast] Successfully injected updated code for large file ${absoluteFilePath}.`);
+		} catch (validationError) {
+			logger.warn(
+				`[processSast] Validation error on combined snippet for ${absoluteFilePath}: ${validationError.message}`
+			);
+			localSnippet = "";
+		}
+	}
+
+	return { snippet: combinedSnippet, envVarNames };
+}
+
+/**
+ * Main function to process SAST vulnerabilities on a per-file basis:
+ * 1) Transform them into aggregated maps,
+ * 2) Loop over each file, handle small or large files differently,
+ * 3) Use LLM to generate fixes and inject them back,
+ * 4) Extract environment variables and create an .env.example as needed,
+ * 5) Inject dotenv configuration in the TS entry point if new variables are found.
+ */
+const processSastPerFile = async (codeVulnerabilities, repositoryBasePath) => {
+	logger.info("[processSast] Starting SAST processing...");
 	const metaFilesFolderPath = "meta-folder";
 
 	logger.debug(`[processSast] Ensuring metaFilesFolderPath exists at: ${metaFilesFolderPath}`);
-	if (!fs.existsSync(metaFilesFolderPath)) fs.mkdirSync(metaFilesFolderPath, { recursive: true });
+	if (!fs.existsSync(metaFilesFolderPath)) {
+		fs.mkdirSync(metaFilesFolderPath, { recursive: true });
+	}
 
-	// Load already processed and ignored files
-	// const processedFilesPath = path.join(metaFilesFolderPath, "sast-processed-files.json");
-	// const ignoredFilesPath = path.join(metaFilesFolderPath, "sast-ignored-files.json");
-	// const outputPath = path.join(metaFilesFolderPath, "sast-OUTPUT.json");
-	// const collectedEnvVarsPath = path.join(metaFilesFolderPath, "sast-collectedEnvVariables.json");
-
-	// const alreadyProcessedFilesUnparsed = fs.existsSync(processedFilesPath);
-	// const alreadyProcessedFiles = alreadyProcessedFilesUnparsed
-	// 	? JSON.parse(fs.readFileSync(processedFilesPath, 'utf8'))
-	// 	: [];
-	// const alreadyIgnoredFilesUnparsed = fs.existsSync(ignoredFilesPath);
-	// const alreadyIgnoredFiles = alreadyIgnoredFilesUnparsed
-	// 	? JSON.parse(fs.readFileSync(ignoredFilesPath, 'utf8'))
-	// 	: [];
-	// const alreadyIgnoredFilesSet = new Set(alreadyIgnoredFiles);
-	// const alreadyProcessedFilesSet = new Set([...alreadyProcessedFiles, ...alreadyIgnoredFiles]);
 	const changedFiles = new Set();
-
-	// Load existing processOutput if available
-	let processOutput = [];
-	// if (fs.existsSync(outputPath)) {
-	// 	try {
-	// 		processOutput = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
-	// 		logger.debug(`[processSast] Loaded existing processOutput with ${processOutput.length} entries.`);
-	// 	} catch {
-	// 		logger.warn(`[processSast] Failed to parse existing sast-OUTPUT.json. Initializing as empty array.`);
-	// 		processOutput = [];
-	// 	}
-	// }
-
-	// Load existing collectedEnvVariables if available
 	let collectedEnvVariables = [];
-	// if (fs.existsSync(collectedEnvVarsPath)) {
-	// 	try {
-	// 		collectedEnvVariables = JSON.parse(fs.readFileSync(collectedEnvVarsPath, 'utf8'));
-	// 		logger.debug(`[processSast] Loaded existing collectedEnvVariables with ${collectedEnvVariables.length} entries.`);
-	// 	} catch {
-	// 		logger.warn(`[processSast] Failed to parse existing sast-collectedEnvVariables.json. Initializing as empty array.`);
-	// 		collectedEnvVariables = [];
-	// 	}
-	// }
 
 	try {
 		logger.debug(`[processSast] Number of initial code vulnerabilities: ${codeVulnerabilities.length}`);
 		const { vulnerabilitiesMap, filesMap } = transformCodeVulnerabilities(codeVulnerabilities);
-		fs.writeFileSync(path.join(metaFilesFolderPath, "sast-vulnerabilitiesMap.json"), JSON.stringify(vulnerabilitiesMap, null, 2));
-		logger.debug("[processSast] Wrote sast-vulnerabilitiesMap.json");
-		fs.writeFileSync(path.join(metaFilesFolderPath, "sast-filesMap.json"), JSON.stringify(filesMap, null, 2));
-		logger.debug("[processSast] Wrote sast-filesMap.json");
 
-		// Initialize LLM
+		// Initialize the LLM once for this session
 		const llm = await LLM();
+		logger.info("[processSast] Beginning per-file analysis");
 
-		logger.info(`[processSast] Beginning per-file analysis`);
-        
-		const filesToProcess = Object.entries(filesMap).filter(([filePath, findings_]) => {
-			// Skip already processed files
-			if (selectedFiles.includes(filePath)) {
-				logger.info(`[processSast] File ${filePath} is selected for processing.`);
-				return true;
-			} else {
-				logger.info(`[processSast] File ${filePath} is not selected for processing. Skipping...`);
-				return false;
-			}
-
-			// if (alreadyProcessedFilesSet.has(filePath)) {
-			// 	logger.info(`[processSast] File ${filePath} already processed. Skipping...`);
-			// 	return false;
-			// }
-
-			// // Skip files with no findings
-			// if (!findings_ || Object.keys(findings_).length === 0) {
-			// 	logger.info(`[processSast] File ${filePath} has no findings. Skipping...`);
-			// 	return false;
-			// }
-
-			// // Skip files that do not exist
-			// const absoluteFilePath = path.join(repositoryBasePath, filePath);
-			// if (!fs.existsSync(absoluteFilePath)) {
-			// 	logger.warn(`[processSast] File ${absoluteFilePath} does not exist. Skipping.`);
-			// 	return false;
-			// }
-
-			return true; // Include this file in processing
-		});
-
-		// Process a subset or all files as needed
-		for (const [filePath, findings_] of filesToProcess) { // Adjust the slice as needed
+		for (const [filePath, findings_] of Object.entries(filesMap)) {
 			logger.info(`[processSast] Analyzing file: ${filePath}`);
-			// if (alreadyProcessedFilesSet.has(filePath)) {
-			// 	logger.info(`[processSast] File ${filePath} already processed. Skipping...`);
-			// 	continue;
-			// }
 			const absoluteFilePath = path.join(repositoryBasePath, filePath);
 			const sastForPrompt = [];
-			for (const [ruleId, lines] of Object.entries(findings_)) {
-				const codeVulnerability = vulnerabilitiesMap[ruleId] || null;
-				if (codeVulnerability) sastForPrompt.push({ ...codeVulnerability, lines });
+
+			// Build array of { messageKey, lines }
+			for (const [messageKey, ranges] of Object.entries(findings_)) {
+				const vulnerability = vulnerabilitiesMap[messageKey] || null;
+				if (vulnerability) {
+					sastForPrompt.push({ ...vulnerability, lines: ranges });
+				}
 			}
+
 			if (sastForPrompt.length > 0) {
+				// Load file contents
 				const { part: codeFile, totalLines } = await getCodeFromFile(absoluteFilePath);
-				logger.debug(`[processSast] File ${filePath} has ${totalLines} lines (allowed max: ${TOTAL_ALLOWED_LINES}).`);
-				let attemptsUsed = 0;
-				console.log(`[processSast] File ${filePath} has ${totalLines} lines (allowed max: ${TOTAL_ALLOWED_LINES}).`);
+				// if (totalLines < 500) continue; // Skip files with less than 500 lines
+				logger.debug(
+					`[processSast] File ${filePath} has ${totalLines} lines (allowed max: ${TOTAL_ALLOWED_LINES}).`
+				);
+
+				// Decide how to process the file based on line count
+				let snippet = "";
+				let envVarNames = [];
+
 				if (totalLines <= TOTAL_ALLOWED_LINES) {
-					const maxAttempts = 5;
-					let snippet = "";
+					// Process smaller files in one go
+					const result = await processSmallFileForSAST(absoluteFilePath, codeFile, sastForPrompt, llm);
+					snippet = result.snippet;
+					envVarNames = result.envVarNames;
+				} else {
+					// Process larger files in AST-based chunks
+					const result = await processLargeFileForSAST(
+						absoluteFilePath,
+						codeFile,
+						sastForPrompt,
+						llm
+					);
+					snippet = result.snippet;
+					envVarNames = result.envVarNames;
+				}
 
-					let envVarNames = null;
-					while (attemptsUsed < maxAttempts && !snippet) {
-						attemptsUsed++;
-						envVarNames = null;
-						logger.debug(`[processSast] LLM attempt #${attemptsUsed} for file ${filePath}`);
-						console.log(`[processSast] LLM attempt #${attemptsUsed}`);
-
-						try {
-							// if (totalLines >= TOTAL_ALLOWED_LINES) {
-							// 	const chunks = breakCodeIntoChunks(codeFile, TOTAL_ALLOWED_LINES);
-							// 	await applyChunkFixesSequentially(
-							// 		codeFile,
-							// 		chunks,
-							// 		sastForPrompt,
-							// 		queries,
-							// 		llm)
-							// } else {
-							// 	const response = await llm.sendMessage(
-							// 		queries.generateSASTFixTask(codeFile, sastForPrompt),
-							// 	);
-							// 	snippet = extractCodeBlock(response);
-							// }
-
-							const response = await llm.sendMessage(
-								queries.generateSASTFixTask(codeFile, sastForPrompt),
-							);
-							snippet = extractCodeBlock(response);
-
-							console.warn(snippet);
-
-							const { ast } = parseCodeToAst(snippet);
-							envVarNames = extractEnvVarNamesFromAST(ast);
-
-							const lineCountResponse = snippet.split(/\r?\n/).length;
-							logger.debug(`[processSast] LLM snippet returned ${lineCountResponse} lines.`);
-
-							// Inject the fixed code
-							await injectCodePart(absoluteFilePath, snippet);
-							changedFiles.add(filePath);
-							logger.info(`[processSast] Successfully injected code snippet into ${filePath}.`);
-						} catch (error) {
-							console.log(error);
-							snippet = null;
-							if (attemptsUsed === maxAttempts) {
-								// alreadyIgnoredFilesSet.add(filePath);
-							}
-							logger.warn(`[processSast] Attempt #${attemptsUsed} failed with error: ${error.message}`);
-						}
-					}
-
+				if (snippet) {
+					changedFiles.add(filePath);
 					if (envVarNames && envVarNames.length > 0) {
 						collectedEnvVariables.push(...envVarNames);
 					}
-
-				} else {
-					// alreadyIgnoredFilesSet.add(filePath);
 				}
-				// Append to processOutput
-				processOutput.push({
-					sast: sastForPrompt,
-					filePath,
-					attempts: attemptsUsed,
-					totalLines,
-				});
 			} else {
-				// alreadyIgnoredFilesSet.add(filePath);
+				logger.debug(`[processSast] No relevant vulnerabilities for file ${filePath}.`);
 			}
 		}
 
+		// If we discovered new environment variables, write them to .env.example and inject dotenv config
 		if (collectedEnvVariables.length > 0) {
 			const envFilePath = writeEnvVariablesToFile(collectedEnvVariables, repositoryBasePath);
-			injectDotenvConfiguration(repositoryBasePath);
 			changedFiles.add(envFilePath);
+			injectDotenvConfiguration(repositoryBasePath);
 		}
 
-		// Write updated processOutput to sast-OUTPUT.json
-		// fs.writeFileSync(
-		// 	outputPath,
-		// 	JSON.stringify(processOutput, null, 2)
-		// );
-		// logger.info(`[processSast] Updated sast-OUTPUT.json with ${processOutput.length} entries.`);
-
-		// Write updated changedFiles to sast-processed-files.json
-		// fs.writeFileSync(
-		// 	processedFilesPath,
-		// 	JSON.stringify([...changedFiles], null, 2)
-		// );
-		// logger.info(`[processSast] Updated sast-processed-files.json with ${changedFiles.size} files.`);
-
-		// Write updated alreadyIgnoredFilesSet to sast-ignored-files.json
-		// fs.writeFileSync(
-		// 	ignoredFilesPath,
-		// 	JSON.stringify([...alreadyIgnoredFilesSet], null, 2)
-		// );
-		// logger.info(`[processSast] Updated sast-ignored-files.json with ${alreadyIgnoredFilesSet.size} files.`);
-
-		// // Write updated collectedEnvVariables to sast-collectedEnvVariables.json
-		// fs.writeFileSync(
-		// 	collectedEnvVarsPath,
-		// 	JSON.stringify(collectedEnvVariables, null, 2)
-		// );
-		logger.info(`[processSast] Updated sast-collectedEnvVariables.json with ${collectedEnvVariables.length} entries.`);
-
-		logger.info("[processSast] Violation processing complete.");
+		logger.info("[processSast] SAST processing complete.");
 		return changedFiles;
 	} catch (error) {
 		logger.error(`[processSast] Error during process: ${error.message}`);
-		// Attempt to write whatever is in processOutput
-		try {
-			// fs.writeFileSync(
-			// 	outputPath,
-			// 	JSON.stringify(processOutput, null, 2)
-			// );
-			logger.info(`[processSast] Wrote partial sast-OUTPUT.json with ${processOutput.length} entries.`);
-		} catch (writeError) {
-			logger.error(`[processSast] Failed to write sast-OUTPUT.json: ${writeError.message}`);
-		}
 		throw error;
 	}
 };
+
 export default processSastPerFile;

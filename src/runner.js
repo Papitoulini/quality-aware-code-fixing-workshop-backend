@@ -1,7 +1,7 @@
 import processors from "./processors/index.js";
 import { deleteFolder } from "#utils"
 
-const analyzer = async (sha, selectedFiles, pipelineName, model) => {
+const analyzer = async (sha, selectedFiles = [], pipelineName = null, model = null) => {
 	try {
 		const processorsInstance = await processors(sha, selectedFiles, pipelineName, model);
 		for (const processor of Object.values(processorsInstance)) await processor();
