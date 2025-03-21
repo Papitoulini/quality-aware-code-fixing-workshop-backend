@@ -135,7 +135,7 @@ async function processLargeFile(absoluteFilePath, codeFile, violationsForPrompt,
 				const response = await llm.sendMessage(queries.askToResolveViolations(codePart, violationsForChunk));
 				const chunkSnippet = extractCodeBlock(response);
 				// If the extraction fails, fallback to using the original chunk.
-				combinedSnippet += chunkSnippet ? `\n\n${chunkSnippet}` : codePart;
+				combinedSnippet += "\n\n" + (chunkSnippet || codePart);
 			} catch (chunkError) {
 				logger.warn(`[processViolations] Error processing chunk (${startLine}-${endLine}) for ${absoluteFilePath}: ${chunkError.message}. Using original chunk.`);
 				combinedSnippet += codePart;
@@ -197,7 +197,7 @@ const processViolations = async (violations, repositoryBasePath) => {
 
 			if (violationsForPrompt.length > 0) {
 				const { part: codeFile, totalLines } = await getCodeFromFile(absoluteFilePath);
-				if (totalLines < 500) continue; // Skip files with less than 500 lines
+				// if (totalLines < 500) continue; // Skip files with less than 500 lines
 				logger.debug(`[processViolations] File ${filePath} has ${totalLines} lines (allowed max: ${TOTAL_ALLOWED_LINES}).`);
 
 				const success = totalLines <= TOTAL_ALLOWED_LINES 

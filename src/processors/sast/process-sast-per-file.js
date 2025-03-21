@@ -285,7 +285,7 @@ async function processLargeFileForSAST(absoluteFilePath, codeFile, sastForPrompt
 					queries.generateSASTFixTask(codePart, localFindings)
 				);
 				const chunkSnippet = extractCodeBlock(response);
-				localSnippet += chunkSnippet ? `\n\n${chunkSnippet}` : codePart;
+				localSnippet += "\n\n" + (chunkSnippet || codePart);
 			} catch (error) {
 				logger.warn(
 					`[processSast] Error processing chunk (${startLine}-${endLine}) of ${absoluteFilePath}: ${error.message}. Using original chunk.`
@@ -355,7 +355,7 @@ const processSastPerFile = async (codeVulnerabilities, repositoryBasePath) => {
 			if (sastForPrompt.length > 0) {
 				// Load file contents
 				const { part: codeFile, totalLines } = await getCodeFromFile(absoluteFilePath);
-				// if (totalLines < 500) continue; // Skip files with less than 500 lines
+				// if (totalLines <= 300) continue; // Skip files with less than 500 lines
 				logger.debug(
 					`[processSast] File ${filePath} has ${totalLines} lines (allowed max: ${TOTAL_ALLOWED_LINES}).`
 				);
