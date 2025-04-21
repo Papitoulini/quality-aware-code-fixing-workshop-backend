@@ -130,7 +130,7 @@ async function main() {
 
 	let indexCounter = 0;
 	// Process a subset for testing
-	for (const filePath of filePaths.slice(0, 3)) {
+	for (const filePath of filePaths) {
 		console.log(`\nProcessing file: ${filePath}`);
 		let fileContent;
 		try {

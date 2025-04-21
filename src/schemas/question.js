@@ -6,7 +6,7 @@ const { Schema } = mongoose;
 const questionSchema = new Schema(
 	{
 		index: { type: Number, required: true },
-		code: { type: mongoose.Schema.Types.ObjectId, ref: "snippets" },
+		code: { type: mongoose.Schema.Types.ObjectId, ref: "Snippet" },
 		description: { type: String, required: true },
 		question: { type: String, required: true },
 		analysis: { type: Object, required: true },

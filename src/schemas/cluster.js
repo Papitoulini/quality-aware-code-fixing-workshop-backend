@@ -5,9 +5,9 @@ const { Schema } = mongoose;
 
 const clusterSchema = new Schema(
 	{
-		centroid: { type: mongoose.Schema.Types.ObjectId, ref: "snippets", required: true },
-		gSnippets: [{ type: mongoose.Schema.Types.ObjectId, ref: "snippets" }],
-		bSnippets: [{ type: mongoose.Schema.Types.ObjectId, ref: "snippets" }],
+		centroid: { type: mongoose.Schema.Types.ObjectId, ref: "Snippet", required: true },
+		gSnippets: [{ type: mongoose.Schema.Types.ObjectId, ref: "Snippet" }],
+		bSnippets: [{ type: mongoose.Schema.Types.ObjectId, ref: "Snippet" }],
 		model: { type: String, enum: ["llama", "claude"], required: true }
 	},
 	{ timestamps: true, strict: false, toObject: { versionKey: false } },

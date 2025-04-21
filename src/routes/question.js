@@ -102,7 +102,7 @@ router.get("/:index", async (req, res) => {
 	try {
 		const { index } = req.params;
 
-		const question = await Question.findOne({ index: Number.parseInt(index) }).lean();
+		const question = await Question.findOne({ index: Number.parseInt(index) }).populate("code").lean();
 		console.log(question, { index: Number.parseInt(index) });
 		if (!question) {
 			return res.json({ success: false, message: "Η ερώτηση δεν βρέθηκε" });
@@ -112,6 +112,7 @@ router.get("/:index", async (req, res) => {
 
 		return res.json({ success: true, question, hasNext: Boolean(nextQuestion) });
 	} catch (error) {
+		console.log(error);
 		Sentry.captureException(error);
 		return res.json({ success: false, message: "Κάτι πήγε στραβά" });
 	}

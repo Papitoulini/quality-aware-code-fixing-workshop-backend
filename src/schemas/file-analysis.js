@@ -5,7 +5,7 @@ const { Schema } = mongoose;
 
 const fileAnalysisSchema = new Schema(
 	{
-		snippet: { type: mongoose.Schema.Types.ObjectId, ref: "snippets" },
+		snippet: { type: mongoose.Schema.Types.ObjectId, ref: "Snippet" },
 	},
 	{ timestamps: true, strict: false, toObject: { versionKey: false } },
 );
