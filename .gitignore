@@ -96,8 +96,6 @@ server-test*
 # Ignore generated credentials from google-github-actions/auth
 gha-creds-*.json
 
-scripts/
-
 .vscode
 
 *-startup.sh
