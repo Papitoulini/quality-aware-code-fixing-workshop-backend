@@ -12,12 +12,17 @@ import {
 	qualityGate,
 	qualityGateResult,
 	project,
+	question,
+	questionnaire,
+	snippet,
+	fileAnalysis,
+	cluster,
 } from "./schemas/index.js";
 
 export const init = async (cluster_, dbName_) => {
 	const { CLUSTER_URL, TEST_CLUSTER_URL, DB_NAME } = process.env;
 	const cluster = cluster_ || CLUSTER_URL || TEST_CLUSTER_URL;
-	const dbName = dbName_ || DB_NAME || "cyclopt";
+	const dbName = dbName_ || DB_NAME || "workshop";
 	const clusterUri = constructUrl(cluster, "", {
 		retryWrites: true,
 		compressors: "zstd",
@@ -47,4 +52,9 @@ export const models = {
 	QualityGate: mongoose.model("QualityGate", qualityGate),
 	QualityGateResult: mongoose.model("QualityGateResult", qualityGateResult),
 	Project: mongoose.model("Project", project),
+	Question: mongoose.model("Question", question),
+	Questionnaire: mongoose.model("Questionnaire", questionnaire),
+	Snippet: mongoose.model("Snippet", snippet),
+	FileAnalysis: mongoose.model("FileAnalysis", fileAnalysis),
+	Cluster: mongoose.model("Cluster", cluster),
 };

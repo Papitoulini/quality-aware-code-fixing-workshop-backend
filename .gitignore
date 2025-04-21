@@ -103,7 +103,9 @@ scripts/
 *-startup.sh
 
 doc/*
-
+workshop-data/*
+src/assets/uploads/*
+src/utils/quality/analyzers/sast/ash/lib/ash-library/*
 *.pyc
 
 /tmp*/*

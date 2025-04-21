@@ -16,6 +16,9 @@ const subanalyzers = ["sast", "violations"];
 const preprocess = async (sha) => {
 	try {
 		const token = GITHUB_TOKEN;
+		console.log({ hash: sha })
+		const commit = await Commit.find({ hash: sha }).lean();
+		console.log(commit, { hash: sha })
 
 		const {
 			_id: commitId,
@@ -30,12 +33,15 @@ const preprocess = async (sha) => {
 			.select("_id files createdAt") // Selecting top-level fields
 			.lean();
 
+
+		console.log(commitId);
+
 		logger.info(`General Info: ${JSON.stringify({commitId, owner, name, sha, userId, username}, null, 2)}`);
 		const analysis = await Analysis.findOne({
 			commit: commitId,
 			language,
-			"configuration.subanalyzersCompleted": { $all: subanalyzers },
-			"configuration.subanalyzersFailed": { $nin: subanalyzers },
+			// "configuration.subanalyzersCompleted": { $all: subanalyzers },
+			// "configuration.subanalyzersFailed": { $nin: subanalyzers },
 		}).lean();
 
 		const authUrl = constructAuthUrl(token, owner, name);

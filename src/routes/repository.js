@@ -4,9 +4,20 @@ import cycloptViolations from "../../temp-violations.js";
 import runner from "../runner.js";
 
 import { models } from "#dbs";
-import { getAnalysisFolderFile, getCloudAnalysis, Github, findSastDiff, getIntroducedViolationsProps, findViolationsDiff } from "#utils";
+import {
+	getAnalysisFolderFile,
+	getCloudAnalysis,
+	Github,
+	findSastDiff,
+	getIntroducedViolationsProps,
+	findViolationsDiff,
+	fetchLatestAnalysis,
+	APPLICATIONS,
+} from "#utils";
 
-const { Commit, Analysis } = models;
+const APPLICATION = "companion";
+
+const { Commit, Analysis, Project } = models;
 
 const router = express.Router({ mergeParams: true });
 
@@ -64,85 +75,48 @@ const { GITHUB_TOKEN } = process.env;
 // list files
 router.get("/", async (req, res) => {
 	try {
+		const { user } = res.locals
 		// Assuming you have a GitHub client instance already set up using your token.
-		const { rest } = Github(GITHUB_TOKEN);
-  
-		// Fetch the repository's file tree recursively.
-		// Replace 'owner', 'repo', and 'tree_sha' with actual variables or constants.
-		const { data: tree } = await rest("GET /repos/{owner}/{repo}/git/trees/{tree_sha}", {
-			owner,                // GitHub repo owner
-			repo: name,           // Repository name
-			tree_sha: originalHash,     // You can pass the branch name if GitHub resolves it,
-			// or use a specific commit SHA representing the tree.
-			recursive: 1,         // Fetch files recursively
-			headers: { "X-GitHub-Api-Version": "2022-11-28" },
+
+		const project = await Project.findOne({
+			"team.user": user._id,
+			isCompanion: true,
+		}).populate("linkedRepositories");
+
+		const owner = user.username;
+
+		const repository = project.linkedRepositories.find((r) => {
+			return r.owner === owner && r.name === name;
 		});
-  
-		// Filter only the file blobs (ignoring directories, submodules, etc.)
-		const files = tree.tree.filter(item => item.type === "blob");
-
-		const {
-			_id: commitId,
-			// repositories: [{ owner, name, productionBranch, addedBy: { _id: userId, github: { token }, username } }],
-			repositories: [{ language }],
-		} = await Commit.findOne({ hash: originalHash })
-			.populate({
-				path: "repositories",
-				select: "owner name providerId addedBy productionBranch language",
-				populate: { path: "addedBy", model: "User", select: "_id username github" },
-			})
-			.select("_id files createdAt") // Selecting top-level fields
-			.lean();
-
-		const analysis = await Analysis.findOne({ commit: commitId, language, pending: true }).lean();
-
-		const [
-			{ content: { sast } },
-			analysisResults,
-		] = await Promise.all([
-			getAnalysisFolderFile(analysis, "sast.json", { ignoreInternalId: true }),
-			getCloudAnalysis(analysis, { isMaintainabilityPal: true, violations: true }),
-		]);
 		
-		const enhancedViolations = enhanceViolations(analysisResults.violationsInfo.violations);
-		const { violationsMap, filesMap } = transformViolations(enhancedViolations);
+		console.log(project.linkedRepositories[0], repository, owner ,name)
+
+		const commitsQuery = {
+			repositories: repository._id,
+			branches: repository.productionBranch,
+		};
+	
+		const analysisQuery = {
+			"configuration.applications": APPLICATION,
+			"configuration.subanalyzersCompleted": { $all: APPLICATIONS[APPLICATION] },
+			"configuration.subanalyzersFailed": { $nin: APPLICATIONS[APPLICATION] },
+			isEmpty: false,
+			archived: false,
+		};
+	
+		const select = { "commit.hash": 1 };
+	
+		const latestAnalysis = await fetchLatestAnalysis(commitsQuery, analysisQuery, select);
+
+		console.log(commitsQuery, analysisQuery, latestAnalysis)
+	
+		if (!latestAnalysis) return res.status(404).json({ message: "Analysis not found." });
+
+		repository.latestAnalysis = latestAnalysis;
+
+		console.log(repository)
 		
-		const finalFiles = files.map((file) => {
-			const fileSastSummary = { INFO: 0, WARNING: 0, ERROR: 0, TOTAL: 0 };
-			const fileViolationsSummary = { Critical: 0, Major: 0, Minor: 0, Total: 0 }; //"Critical", "Major", "Minor"
-			const { path, lineCount } = file;
-			const fileSast = sast.filter((f) => f.path === path);
-			const fileViolations = filesMap[`/${path}`] || null;
-			if (!fileViolations && fileSast.length === 0) return null;
-
-			for (const sast of fileSast) {
-				fileSastSummary[sast.severity] += 1;
-				fileSastSummary.TOTAL += 1;
-			}
-
-			for (const [ruleId, lines] of Object.entries(fileViolations || {})) {
-				const violation = violationsMap[ruleId] || null;
-				fileViolationsSummary[violation.severity] += lines.length;
-				fileViolationsSummary.Total += 1;
-			}
-
-			return {
-				path,
-				lineCount,
-				fileSastSummary,
-				fileViolationsSummary,
-			};
-		}).filter(Boolean);
-
-		const response = {
-			owner,
-			name,
-			hash: originalHash,
-			files: finalFiles,
-		}
-
-		// Return the order info along with the filtered file list
-		return res.json(response);
+		return res.json(repository);
 	} catch (error) {
 		console.error("Error fetching repository files:", error);
 		return res.status(500).json({
@@ -273,3 +247,83 @@ router.get("/pull_requests/:PULL_REQUEST", async (req, res) => {
 	}
 });
 export default router;
+
+
+	
+// const { rest } = Github(GITHUB_TOKEN);
+// // Fetch the repository's file tree recursively.
+// // Replace 'owner', 'repo', and 'tree_sha' with actual variables or constants.
+// const { data: tree } = await rest("GET /repos/{owner}/{repo}/git/trees/{tree_sha}", {
+// 	owner,                // GitHub repo owner
+// 	repo: name,           // Repository name
+// 	tree_sha: originalHash,     // You can pass the branch name if GitHub resolves it,
+// 	// or use a specific commit SHA representing the tree.
+// 	recursive: 1,         // Fetch files recursively
+// 	headers: { "X-GitHub-Api-Version": "2022-11-28" },
+// });
+
+// // Filter only the file blobs (ignoring directories, submodules, etc.)
+// const files = tree.tree.filter(item => item.type === "blob");
+
+// const {
+// 	_id: commitId,
+// 	// repositories: [{ owner, name, productionBranch, addedBy: { _id: userId, github: { token }, username } }],
+// 	repositories: [{ language }],
+// } = await Commit.findOne({ hash: originalHash })
+// 	.populate({
+// 		path: "repositories",
+// 		select: "owner name providerId addedBy productionBranch language",
+// 		populate: { path: "addedBy", model: "User", select: "_id username github" },
+// 	})
+// 	.select("_id files createdAt") // Selecting top-level fields
+// 	.lean();
+
+// const analysis = await Analysis.findOne({ commit: commitId, language, pending: true }).lean();
+
+// const [
+// 	{ content: { sast } },
+// 	analysisResults,
+// ] = await Promise.all([
+// 	getAnalysisFolderFile(analysis, "sast.json", { ignoreInternalId: true }),
+// 	getCloudAnalysis(analysis, { isMaintainabilityPal: true, violations: true }),
+// ]);
+
+// const enhancedViolations = enhanceViolations(analysisResults.violationsInfo.violations);
+// const { violationsMap, filesMap } = transformViolations(enhancedViolations);
+
+// const finalFiles = files.map((file) => {
+// 	const fileSastSummary = { INFO: 0, WARNING: 0, ERROR: 0, TOTAL: 0 };
+// 	const fileViolationsSummary = { Critical: 0, Major: 0, Minor: 0, Total: 0 }; //"Critical", "Major", "Minor"
+// 	const { path, lineCount } = file;
+// 	const fileSast = sast.filter((f) => f.path === path);
+// 	const fileViolations = filesMap[`/${path}`] || null;
+// 	if (!fileViolations && fileSast.length === 0) return null;
+
+// 	for (const sast of fileSast) {
+// 		fileSastSummary[sast.severity] += 1;
+// 		fileSastSummary.TOTAL += 1;
+// 	}
+
+// 	for (const [ruleId, lines] of Object.entries(fileViolations || {})) {
+// 		const violation = violationsMap[ruleId] || null;
+// 		fileViolationsSummary[violation.severity] += lines.length;
+// 		fileViolationsSummary.Total += 1;
+// 	}
+
+// 	return {
+// 		path,
+// 		lineCount,
+// 		fileSastSummary,
+// 		fileViolationsSummary,
+// 	};
+// }).filter(Boolean);
+
+// const response = {
+// 	owner,
+// 	name,
+// 	hash: originalHash,
+// 	files: finalFiles,
+// }
+
+// // Return the order info along with the filtered file list
+// return res.json(response);

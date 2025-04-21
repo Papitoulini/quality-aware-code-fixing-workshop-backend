@@ -1,31 +1,39 @@
 const generateSASTFixTask = (codeSnippet, vulnerabilities, language = "TypeScript") => {
-	// return "What is your porpuse here?";
-	const details = vulnerabilities.map(({ message, severity, metadata: { cwe, references, vulnerability_class }, lines }) => `
-Message: ${message}
-Severity: ${severity || 'Not specified'}
-CWE: ${cwe?.join(", ") || 'None'}
-References: ${references?.join(", ") || 'None'}
-Class: ${vulnerability_class?.join(", ") || 'None'}
-Lines: ${lines.map(({ start, end }) => start.line === end.line ? start.line : `${start.line}-${end.line}`).join(", ")}
-`).join("\n");
+	// Format each finding into a structured detail block
+	const details = vulnerabilities
+		.map((finding, index) => {
+			const { message, severity, metadata: { cwe, references, vulnerability_class }, start, end } = finding;
+			return [
+				`Finding ${index + 1}:`,
+				`• Message : ${message}`,
+				`• Severity: ${severity || "Unspecified"}`,
+				`• CWE(s): ${cwe ? cwe.join(", ") : "None"}`,
+				`• Class : ${vulnerability_class ? vulnerability_class.join(", ") : "None"}`,
+				`• References: ${references ? references.join(", ") : "None"}`,
+				`• Affected lines: ${start.line}${start.column ? `:${start.column}` : ""} to ${end.line}${end.column ? `:${end.column}` : ""}`
+			].join("\n");
+		})
+		.join("\n\n");
 
-	return `
-You are a highly skilled software security expert and experienced
-developer specializing in secure coding practices in ${language}.
+	return `You are a senior software security engineer and expert developer specialized in secure coding and vulnerability remediation in ${language}.
+
+TASK INSTRUCTIONS:
+1. Review the findings listed below and apply targeted fixes only to address each vulnerability.
+2. Preserve the original code style, formatting, and logic beyond the specified changes.
+3. Replace any environment variables inline with \`process.env.VARIABLE_NAME\`.
+4. Return the entire updated source file in a single code block, with inline comments indicating each applied fix.
+5. Do not include any additional explanations, analysis, or text outside the code block.
+
+---
+SOURCE FILE:
+\`\`\`${language.toLowerCase()}
+${codeSnippet}
+\`\`\`
+
+VULNERABILITY FINDINGS:
 
 ${details}
-
-TASK:
-1. Fix the issus mentioned above, in the provided code.
-4. Fix the specified issue only, preserving original formatting and logic.
-2. Return the FULL, FIXED file in a single block.
-3. Do NOT include any explanations or text outside the code block.
-4. If you encounter any env variables, replace them with process.env.VARIABLE_NAME.
-5. RESPOND ONLY WITH CODE and INLINE COMMENTS IF NEED. NOTHING ELSE
-
-CODE:
-${codeSnippet}
-`.trim();
+`;
 };
 
 const sastFixQueries = {

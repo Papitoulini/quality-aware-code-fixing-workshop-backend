@@ -339,7 +339,7 @@ const processSastPerFile = async (codeVulnerabilities, repositoryBasePath) => {
 		const llm = await LLM();
 		logger.info("[processSast] Beginning per-file analysis");
 
-		for (const [filePath, findings_] of Object.entries(filesMap)) {
+		for (const [filePath, findings_] of Object.entries(filesMap).slice(0, 1)) {
 			logger.info(`[processSast] Analyzing file: ${filePath}`);
 			const absoluteFilePath = path.join(repositoryBasePath, filePath);
 			const sastForPrompt = [];

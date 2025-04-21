@@ -10,11 +10,13 @@ import cors from "cors";
 import chalk from "chalk";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
+import Sentry from "@sentry/node";
 
 import routes from "./src/routes/index.js";
 
 import { MAX_FILE_SIZE_ALLOWED_IN_MB } from "#utils";
 import { init } from "#dbs";
+import { setServerTimeout, captureErrors } from "#middleware";
 
 const { NODE_ENV, PORT } = process.env;
 
@@ -23,6 +25,7 @@ init();
 const app = express();
 
 app.use(helmet());
+app.use(setServerTimeout(2 * 60 * 1000));
 if (NODE_ENV === "development") app.use(morgan("dev", { skip: (req) => req.method === "OPTIONS" }));
 app.use(cookieParser());
 app.use(cors({ credentials: true, origin: true }));
@@ -41,6 +44,10 @@ app.use(favicon(path.join(path.dirname(fileURLToPath(import.meta.url)), "src", "
 
 app.use("/api/", routes);
 app.all("/", (_, res) => res.json({ body: "It works! ✅" }));
+
+app.use(Sentry.Handlers.errorHandler());
+
+app.use(captureErrors);
 
 const port = PORT || 3000;
 app.listen(port, () => NODE_ENV !== "test" && console.log(chalk.bold.cyan(`>>> Live at http://localhost:${port} (node ${process.versions.node})`)));

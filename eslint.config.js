@@ -68,14 +68,14 @@ const customRules = {
 	"no-multiple-empty-lines": ["error", { max: 1, maxEOF: 0 }],
 };
 
-// Function to safely extract recommended rules
+// Helper function to extract only the rules and ignore any unwanted top-level properties
 const getRecommendedRules = (plugin) => {
-	return plugin.configs && plugin.configs.recommended && plugin.configs.recommended.rules
-		? plugin.configs.recommended.rules
-		: {};
+	const recommendedConfig = plugin.configs && plugin.configs.recommended;
+	// Ensure that we take only the "rules" sub-object
+	return recommendedConfig && recommendedConfig.rules ? recommendedConfig.rules : {};
 };
 
-// Combine rules from all plugins
+// Combine rules from all plugins with your custom rules, ensuring the custom rules override any duplicates
 const combinedRules = {
 	...getRecommendedRules(eslintPluginImport),
 	...getRecommendedRules(eslintPluginUnicorn),
@@ -86,7 +86,7 @@ const combinedRules = {
 	...customRules,
 };
 
-// Define the main configuration
+// Define the main configuration using the ESLint flat config format
 const mainConfig = {
 	files: ["**/*.js", "**/*.cjs", "**/*.mjs"],
 	ignores: ["node_modules/", "tmp/**", "**/doc/**"],
@@ -96,7 +96,6 @@ const mainConfig = {
 			sourceType: "module",
 		},
 		globals: {
-			// Define global variables for Node.js environment
 			global: "writable",
 			process: "writable",
 			module: "writable",

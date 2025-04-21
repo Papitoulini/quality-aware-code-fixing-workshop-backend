@@ -4,8 +4,8 @@ import { deleteFolder } from "#utils"
 const analyzer = async (sha, selectedFiles = [], pipelineName = null, model = null) => {
 	try {
 		const processorsInstance = await processors(sha, selectedFiles, pipelineName, model);
-		for (const processor of Object.values(processorsInstance)) await processor();
-		await deleteFolder();
+		// for (const processor of Object.values(processorsInstance)) await processor();
+		// await deleteFolder();
 		return { success: true };
 	} catch (error) {
 		console.log(error);

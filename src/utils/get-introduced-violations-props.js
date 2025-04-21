@@ -20,6 +20,7 @@ const getIntroducedViolationsProps = async (currentCommitId, language, root, isM
 	const type = "github";
 	const fromCommitHash = await getPreviousCommitHash(owner, repo, user, toCommitHash, type);
 
+	console.log(fromCommitHash, 9999)
 	const fromCommit = await Commit.findOne({
 		author: { $ne: "maintainability-pal" },
 		hash: fromCommitHash,
@@ -31,8 +32,8 @@ const getIntroducedViolationsProps = async (currentCommitId, language, root, isM
 		commit: fromCommit._id,
 		language,
 		root,
-		"configuration.applications": APPLICATION,
-		"configuration.subanalyzersCompleted": { $all: APPLICATIONS[APPLICATION] },
+		// "configuration.applications": APPLICATION,
+		// "configuration.subanalyzersCompleted": { $all: APPLICATIONS[APPLICATION] },
 		hasError: false,
 		isEmpty: false,
 		archived: false,

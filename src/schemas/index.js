@@ -7,3 +7,8 @@ export { default as configuration } from "./configuration.js";
 export { default as qualityGate } from "./quality-gate.js";
 export { default as qualityGateResult } from "./quality-gate-result.js";
 export { default as project } from "./project.js";
+export { default as question } from "./question.js";
+export { default as questionnaire } from "./questionnaire.js";
+export { default as snippet } from "./snippet.js";
+export { default as fileAnalysis } from "./file-analysis.js";
+export { default as cluster } from "./cluster.js";

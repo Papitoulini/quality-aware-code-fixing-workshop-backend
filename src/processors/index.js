@@ -9,7 +9,7 @@ const processors = async (hash, selectedFiles, name, model) => {
 	return {
 		// duplicates: async () => await runDuplicates(repoPaths, githubOptions),
 		// vulnerabilities: async () => await runVulnerabilities(repoPaths, githubOptions),
-		violations: async () => await runViolations(repoPaths, githubOptions, selectedFiles, name, model),
+		// violations: async () => await runViolations(repoPaths, githubOptions, selectedFiles, name, model),
 		sast: async () => await runSast(repoPaths, githubOptions, selectedFiles, name, model),
 	}};
 
