@@ -52,26 +52,24 @@ const router = express.Router({ mergeParams: true });
 
 router.post("/", upload, async (req, res) => {
 	try {
-		const { folder, saveName, questionId } = req.body;
+		const { saveName, questionId, isBadExample, model } = req.body;
 		if (!saveName) {
 			return res.json({ success: false, message: "Δεν βρέθηκε το αρχείο" });
 		}
 		const question = await Question.findById(questionId);
 
-		console.log(question);
+		console.log(question, isBadExample );
 
-		const oldCode = fs.readFileSync(path.join(uploadFolderPath, folder, saveName), "utf8");
-		const results = await findSimilarSnippets(oldCode, questionId);
+		const results = await findSimilarSnippets(question, model, isBadExample === "true");
 
 		const similarSnippets = [];
 		for (const result of results) {
-			const { code, sumOfSquaredQuality, harmonicMeanQuality, scores } = result;
+			const { code } = result;
+			// const { code, scores } = result;
 			similarSnippets.push({
 				code,
 				quality: {
-					sumOfSquaredQuality,
-					harmonicMeanQuality,
-					...scores,
+					// ...scores,
 				},
 			});
 		}

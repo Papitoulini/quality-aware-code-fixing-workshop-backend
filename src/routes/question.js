@@ -104,6 +104,7 @@ router.get("/:index", async (req, res) => {
 
 		const question = await Question.findOne({ index: Number.parseInt(index) }).populate("code").lean();
 		console.log(question, { index: Number.parseInt(index) });
+		question.code = question.code.code;
 		if (!question) {
 			return res.json({ success: false, message: "Η ερώτηση δεν βρέθηκε" });
 		}
