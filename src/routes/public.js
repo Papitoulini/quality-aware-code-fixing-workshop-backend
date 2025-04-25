@@ -17,10 +17,10 @@ const { User  } = models;
 
 router.get("/", (req, res) => {
 	try {
-		return res.json({ message: "Λειτουργεί!" });
+		return res.json({ message: "Works!" });
 	} catch (error) {
 		Sentry.captureException(error);
-		return res.status(500).json({ message: "Κάτι πήγε στραβά" });
+		return res.status(500).json({ message: "Something Went Wrong" });
 	}
 });
 

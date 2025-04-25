@@ -5,10 +5,10 @@ const router = express.Router({ mergeParams: true });
 
 router.get("/hello", (req, res) => {
 	try {
-		return res.send("Χαίρετε!");
+		return res.send("Hola!");
 	} catch (error) {
 		Sentry.captureException(error);
-		return res.status(500).json({ message: "Κάτι πήγε στραβά" });
+		return res.status(500).json({ message: "Something Went Wrong" });
 	}
 });
 

@@ -50,13 +50,13 @@ router.post("/", upload, async (req, res) => {
 	try {
 		const { saveName } = req.body;
 		if (!saveName) {
-			return res.json({ success: false, message: "Δεν βρέθηκε το αρχείο" });
+			return res.json({ success: false, message: "File Not Found" });
 		}
 
 		return res.json({ success: true });
 	} catch (error) {
 		Sentry.captureException(error);
-		return res.json({ success: false, message: "Κάτι πήγε στραβά" });
+		return res.json({ success: false, message: "Something Went Wrong" });
 	}
 });
 

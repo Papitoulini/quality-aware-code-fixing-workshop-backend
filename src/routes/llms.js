@@ -54,11 +54,11 @@ const router = express.Router({ mergeParams: true });
 router.post("/gpt", upload, async (req, res) => {
 	try {
 		const { query } = req.body;
-		if (!query) return res.json({ success: false, message: "Δεν βρέθηκε το ερώτημα" });
+		if (!query) return res.json({ success: false, message: "Query Not Found" });
 
 		const { folder, saveName } = req.body;
 		if (!saveName) {
-			return res.json({ success: false, message: "Δεν βρέθηκε το αρχείο" });
+			return res.json({ success: false, message: "File Not Found" });
 		}
 
 		const oldCode = fs.readFileSync(path.join(uploadFolderPath, folder, saveName), "utf8");
@@ -82,18 +82,18 @@ router.post("/gpt", upload, async (req, res) => {
 		return res.json({ success: true, code: { old: oldCode, new: code } });
 	} catch (error) {
 		Sentry.captureException(error);
-		return res.json({ success: false, message: "Κάτι πήγε στραβά" });
+		return res.json({ success: false, message: "Something Went Wrong" });
 	}
 });
 
 router.post("/claude", upload, async (req, res) => {
 	try {
 		const { query } = req.body;
-		if (!query) return res.status(400).json({ message: "Δεν βρέθηκε το ερώτημα" });
+		if (!query) return res.status(400).json({ message: "Query Not Found" });
 
 		const { folder, saveName } = req.body;
 		if (!saveName) {
-			return res.status(400).json({ message: "Δεν βρέθηκε το αρχείο" });
+			return res.status(400).json({ message: "File Not Found" });
 		}
 
 		const oldCode = fs.readFileSync(path.join(uploadFolderPath, folder, saveName), "utf8");
@@ -118,7 +118,7 @@ router.post("/claude", upload, async (req, res) => {
 	} catch (error) {
 		console.log(error);
 		Sentry.captureException(error);
-		return res.json({ success: false, message: "Κάτι πήγε στραβά" });
+		return res.json({ success: false, message: "Something Went Wrong" });
 	}
 });
 

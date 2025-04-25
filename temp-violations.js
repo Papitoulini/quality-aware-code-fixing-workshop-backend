@@ -8510,7 +8510,7 @@ const violations = [
 		language: "typescript",
 		badExample: "",
 		goodExample: "",
-		description: "Αims to standardize the use of type assertion style across the codebase. Type assertions are also commonly referred as 'type casting' in TypeScript. In addition to ensuring that type assertions are written in a consistent way, this rule also makes the codebase more type-safe.",
+		description: "Aims to standardize the use of type assertion style across the codebase. Type assertions are also commonly referred as 'type casting' in TypeScript. In addition to ensuring that type assertions are written in a consistent way, this rule also makes the codebase more type-safe.",
 		category: "Best Practices",
 		severity: "",
 		title: "Enforces consistent usage of type assertions",

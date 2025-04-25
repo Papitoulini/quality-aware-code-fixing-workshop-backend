@@ -55,16 +55,16 @@ router.post("/", upload, async (req, res) => {
 	try {
 		const { folder, saveName, description, question } = req.body;
 		if (!saveName) {
-			return res.json({ success: false, message: "Δεν βρέθηκε αρχείο" });
+			return res.json({ success: false, message: "File Not Found" });
 		}
 
 		if (!description || !question) {
-			return res.json({ success: false, message: "Παρακαλώ συμπληρώστε όλα τα πεδία" });
+			return res.json({ success: false, message: "Please Fill All Necessary Fields" });
 		}
 
 		const analysisResults = await analyzeFile(path.join(uploadFolderPath, folder), saveName);
 		if (!analysisResults) {
-			return res.json({ success: false, message: "Δεν ήταν δυνατή η ανάλυση του αρχείου" });
+			return res.json({ success: false, message: "File Analysis Was Not Completed" });
 		}
 
 		const code = fs.readFileSync(path.join(uploadFolderPath, folder, saveName), "utf8");
@@ -89,12 +89,12 @@ router.post("/", upload, async (req, res) => {
 
 		return res.json({
 			success: true,
-			message: "Η ερώτηση αποθηκεύτηκε με επιτυχία",
+			message: "Query Was Not Found",
 		});
 	} catch (error) {
 		console.log(error);
 		Sentry.captureException(error);
-		return res.json({ message: "Κάτι πήγε στραβά" });
+		return res.json({ message: "Something Went Wrong" });
 	}
 });
 
@@ -106,7 +106,7 @@ router.get("/:index", async (req, res) => {
 		console.log(question, { index: Number.parseInt(index) });
 		question.code = question.code.code;
 		if (!question) {
-			return res.json({ success: false, message: "Η ερώτηση δεν βρέθηκε" });
+			return res.json({ success: false, message: "Query Not Found" });
 		}
 
 		const nextQuestion = await Question.exists({ index: question.index + 1 });
@@ -115,7 +115,7 @@ router.get("/:index", async (req, res) => {
 	} catch (error) {
 		console.log(error);
 		Sentry.captureException(error);
-		return res.json({ success: false, message: "Κάτι πήγε στραβά" });
+		return res.json({ success: false, message: "Something Went Wrong" });
 	}
 });
 

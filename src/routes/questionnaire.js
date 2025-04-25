@@ -49,7 +49,7 @@ router.post("/", async (req, res) => {
 
 			return res.json({
 				success: true,
-				message: "Το ερωτηματολόγιο αποθηκεύτηκε με επιτυχία",
+				message: "Questionnaire saved successfully",
 			});
 		}
 
@@ -75,11 +75,11 @@ router.post("/", async (req, res) => {
 
 		return res.json({
 			success: true,
-			message: "Το ερωτηματολόγιο αποθηκεύτηκε με επιτυχία",
+			message: "Questionnaire saved successfully",
 		});
 	} catch (error) {
 		Sentry.captureException(error);
-		return res.json({ message: "Κάτι πήγε στραβά" });
+		return res.json({ message: "Something Went Wrong" });
 	}
 });
 
@@ -97,7 +97,7 @@ router.get("/:id", async (req, res) => {
 		return res.json({ success: true, questionnaire: existingQuestionnaire });
 	} catch (error) {
 		Sentry.captureException(error);
-		return res.json({ success: false, message: "Κάτι πήγε στραβά" });
+		return res.json({ success: false, message: "Something Went Wrong" });
 	}
 });
 

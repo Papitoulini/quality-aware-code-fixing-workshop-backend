@@ -51,7 +51,7 @@ router.post("/register", async (req, res) => {
 			if (alreadyRegistered) {
 				return res.json({
 					success: true,
-					message: "Ο χρήστης αποθηκεύτηκε με επιτυχία",
+					message: "User Saved Successfully",
 					id: existingUser._id,
 				});
 			}
@@ -76,7 +76,7 @@ router.post("/register", async (req, res) => {
 
 			return res.json({
 				success: true,
-				message: "Ο χρήστης αποθηκεύτηκε με επιτυχία",
+				message: "User Saved Successfully",
 				id: existingUser._id,
 			});
 		}
@@ -104,13 +104,13 @@ router.post("/register", async (req, res) => {
 
 		return res.json({
 			success: true,
-			message: "Ο χρήστης αποθηκεύτηκε με επιτυχία",
+			message: "User Saved Successfully",
 			id: newUser._id,
 		});
 	} catch (error) {
 		console.log(error)
 		Sentry.captureException(error);
-		return res.json({ message: "Κάτι πήγε στραβά" });
+		return res.json({ message: "Something Went Wrong" });
 	}
 });
 
@@ -120,13 +120,13 @@ router.get("/:id", async (req, res) => {
 
 		const user = await User.findById(id).lean();
 		if (!user) {
-			return res.json({ success: false, message: "Ο χρήστης δεν βρέθηκε" });
+			return res.json({ success: false, message: "User Not Found" });
 		}
 
 		return res.json({ success: true, user });
 	} catch (error) {
 		Sentry.captureException(error);
-		return res.json({ success: false, message: "Κάτι πήγε στραβά" });
+		return res.json({ success: false, message: "Something Went Wrong" });
 	}
 });
 
