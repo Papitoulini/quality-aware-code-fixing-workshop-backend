@@ -28,7 +28,11 @@ app.use(helmet());
 app.use(setServerTimeout(2 * 60 * 1000));
 if (NODE_ENV === "development") app.use(morgan("dev", { skip: (req) => req.method === "OPTIONS" }));
 app.use(cookieParser());
-app.use(cors({ credentials: true, origin: true }));
+const corsOptions = {
+	origin: true,
+	credentials: true,
+  };
+app.use(cors(corsOptions));
 app.use((req, res, next) => { // eslint-disable-line consistent-return
 	const noCompressionPaths = ["/file/recommendations"];
 	if (noCompressionPaths.some((p) => req.path.endsWith(p))) {
@@ -41,7 +45,6 @@ app.use(express.json({ limit: "10mb" }));
 app.use((req, _, next) => { req.body ||= {}; next(); });
 app.use(express.urlencoded({ extended: true, limit: `${MAX_FILE_SIZE_ALLOWED_IN_MB + 1}mb` }));
 app.use(favicon(path.join(path.dirname(fileURLToPath(import.meta.url)), "src", "assets", "images", "favicon.ico")));
-
 app.use("/api/", routes);
 app.all("/", (_, res) => res.json({ body: "It works! ✅" }));
 

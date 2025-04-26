@@ -11,12 +11,13 @@ import questionRoutes from "./question.js";
 import questionnaireRoutes from "./questionnaire.js";
 import quolyRoutes from "./quoly.js";
 import userRoutes from "./user.js";
+import userResponsesRoutes from "./user-response.js";
 
-// import { attachUser } from "#middleware";
+import { attachFrontend } from "#middleware";
 
 router.use("/", publicRoutes);
 
-// router.use(attachUser);
+router.use(attachFrontend);
 
 router.use("/repositories", repositoryRoutes);
 router.use("/llms/", llmsRoutes);
@@ -25,5 +26,6 @@ router.use("/question/", questionRoutes);
 router.use("/questionnaire/", questionnaireRoutes);
 router.use("/quoly/", quolyRoutes);
 router.use("/user/", userRoutes);
+router.use("/user-response/", userResponsesRoutes);
 
 export default router;
