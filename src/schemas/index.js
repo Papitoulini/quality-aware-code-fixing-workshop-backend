@@ -12,3 +12,4 @@ export { default as questionnaire } from "./questionnaire.js";
 export { default as snippet } from "./snippet.js";
 export { default as fileAnalysis } from "./file-analysis.js";
 export { default as cluster } from "./cluster.js";
+export { default as userResponse } from "./user-response.js";

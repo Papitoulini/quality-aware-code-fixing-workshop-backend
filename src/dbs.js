@@ -17,6 +17,7 @@ import {
 	snippet,
 	fileAnalysis,
 	cluster,
+	userResponse,
 } from "./schemas/index.js";
 
 export const init = async (cluster_, dbName_) => {
@@ -57,4 +58,5 @@ export const models = {
 	Snippet: mongoose.model("Snippet", snippet),
 	FileAnalysis: mongoose.model("FileAnalysis", fileAnalysis),
 	Cluster: mongoose.model("Cluster", cluster),
+	UserResponse: mongoose.model("UserResponse", userResponse),
 };

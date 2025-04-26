@@ -6,6 +6,11 @@ import Sentry from "@sentry/node";
 import express from "express";
 import multer from "multer";
 
+import { analyzeFile } from "#utils";
+import { models } from "#dbs";
+
+const { Snippet, UserResponse } = models;
+
 const uploadFolderPath = path.join(path.dirname(url.fileURLToPath(import.meta.url)), "..", "assets/uploads");
 
 const storage = multer.diskStorage({
@@ -48,12 +53,28 @@ const router = express.Router({ mergeParams: true });
 
 router.post("/", upload, async (req, res) => {
 	try {
-		const { saveName } = req.body;
+		const { saveName, folder, questionId, userId, ...rest } = req.body;
 		if (!saveName) {
 			return res.json({ success: false, message: "File Not Found" });
 		}
 
-		return res.json({ success: true });
+		const analysisResults = await analyzeFile(path.join(uploadFolderPath, folder), saveName);
+
+		const code = fs.readFileSync(path.join(uploadFolderPath, folder, saveName), 'utf8');
+
+		const snippet = await Snippet.create({
+			code,
+			original: false,
+		})
+
+		await UserResponse.create({
+			question: questionId,
+			snippet: snippet._id,
+			user: userId,
+			analysis: analysisResults?.sast?.sast || [],
+		});
+
+		return res.json({ success: true, quality: analysisResults?.sast?.sast || [] });
 	} catch (error) {
 		Sentry.captureException(error);
 		return res.json({ success: false, message: "Something Went Wrong" });
