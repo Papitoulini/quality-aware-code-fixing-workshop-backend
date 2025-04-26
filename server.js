@@ -25,13 +25,13 @@ init();
 const app = express();
 
 app.use(helmet());
-app.use(setServerTimeout(2 * 60 * 1000));
+app.use(setServerTimeout(5 * 60 * 1000));
 if (NODE_ENV === "development") app.use(morgan("dev", { skip: (req) => req.method === "OPTIONS" }));
 app.use(cookieParser());
 const corsOptions = {
 	origin: true,
 	credentials: true,
-  };
+};
 app.use(cors(corsOptions));
 app.use((req, res, next) => { // eslint-disable-line consistent-return
 	const noCompressionPaths = ["/file/recommendations"];
