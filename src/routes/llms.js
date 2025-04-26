@@ -122,4 +122,40 @@ router.post("/claude", upload, async (req, res) => {
 	}
 });
 
+router.post("/claude/explain", upload, async (req, res) => {
+	try {
+		const { query } = req.body;
+		if (!query) return res.status(400).json({ message: "Query Not Found" });
+
+		const { folder, saveName } = req.body;
+		if (!saveName) {
+			return res.status(400).json({ message: "File Not Found" });
+		}
+
+		const oldCode = fs.readFileSync(path.join(uploadFolderPath, folder, saveName), "utf8");
+		const enhancedQuery = `${query}\n\n${oldCode}\n\nYou need to explain the code in detail, including the potential impact of each vulnerability. Your target audience is non-developers, so they need to understand the problem. Use simple language and avoid technical jargon. Provide a brief summary of the code snippet, including its purpose and functionality. The response should contain only the explanation and nothing else. Be very concise and clear and use bullet points to explain.`;
+
+		const llm = LLMS();
+		const response = await llm.post("", {
+			json: {
+				"model": "claude", // or claude
+				"message": enhancedQuery
+			},
+		}).json();
+
+		console.log(response);
+
+		const newCode = response.response;
+		const code = newCode.replace(/^```javascript\n/, "").replace(/\n```$/, "");
+		const newName = saveName.replace(".js", "-new.js");
+		fs.writeFileSync(path.join(uploadFolderPath, folder, newName), code);
+
+		return res.json({ success: true, code: { old: oldCode, new: code } });
+	} catch (error) {
+		console.log(error);
+		Sentry.captureException(error);
+		return res.json({ success: false, message: "Something Went Wrong" });
+	}
+});
+
 export default router;
