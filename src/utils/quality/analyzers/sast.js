@@ -84,11 +84,7 @@ const calculateSAST = async (codePath, folder) => {
 		// Create results folder
 		fs.mkdirSync(path.join(folder, "ash-results"), { recursive: true });
 
-		console.log("Reach Here", 1)
-
 		const analyzerPath = await prepareASH();
-
-		console.log("Reach Here", 2, analyzerPath, folder, path.join(folder, "ash-results"))
 
 		const { success: ashAnalysisSuccess } = ashAnalysis(analyzerPath, folder, path.join(folder, "ash-results"));
 		if (!ashAnalysisSuccess) {

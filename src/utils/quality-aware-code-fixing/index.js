@@ -6,7 +6,6 @@ const { Snippet, Analysis, Cluster } = models;
 const findSimilarSnippets = async (question, model = "llama", isBadExample = false) => {
 	const field = isBadExample ? "bSnippets" : "gSnippets";
 	const cluster = await Cluster.findOne({ centroid: question.code, model }).select(field);
-	console.log(cluster, question._id )
 
 	const similarSnippets = [];
 	const clusterSnippets = await Snippet.find({ _id: { $in: cluster[field] } }).select("_id code");

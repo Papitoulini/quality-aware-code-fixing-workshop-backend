@@ -29,23 +29,6 @@ router.post("/register", async (req, res) => {
 
 		const alreadyRegistered = aR === "true";
 
-		console.log({
-			fullname,
-			email,
-			code,
-			programmingExperience,
-			programmingLevel,
-			javascriptLevel,
-			qualityLevel,
-			llmLevel,
-			llmHow,
-			gpt,
-			claude,
-			llama,
-			gemini,
-			alreadyRegistered,
-		});
-
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
 			if (alreadyRegistered) {

@@ -128,10 +128,8 @@ router.get("/", async (req, res) => {
 router.put("/", async (req, res) => {
 	const { selectedFiles, pipelineName, model } = req.body;
 
-	console.log("startedCloneing")
 	
 	const response = await runner(originalHash, selectedFiles, pipelineName, model);
-	console.log("finished")
 
 	try {
 		// Return the order info along with the filtered file list
@@ -222,7 +220,6 @@ router.get("/pull_requests/:PULL_REQUEST", async (req, res) => {
 			patches,
 			changedFileNameMapping,
 		);
-		console.log(removedSast)
 		
 		return res.json({ rViol, removedSast });
 	} catch (error) {

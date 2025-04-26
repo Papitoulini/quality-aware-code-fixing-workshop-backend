@@ -20,7 +20,6 @@ const getIntroducedViolationsProps = async (currentCommitId, language, root, isM
 	const type = "github";
 	const fromCommitHash = await getPreviousCommitHash(owner, repo, user, toCommitHash, type);
 
-	console.log(fromCommitHash, 9999)
 	const fromCommit = await Commit.findOne({
 		author: { $ne: "maintainability-pal" },
 		hash: fromCommitHash,

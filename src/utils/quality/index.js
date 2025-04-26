@@ -16,8 +16,6 @@ const analyzeFile = async (folder, fileName) => {
 	);
 	const finalResults = results.reduce((acc, result) => Object.assign(acc, result), {});
 
-	console.log(finalResults, 222);
-
 	const scores = {
 		CC: finalResults?.metrics?.metricsScores?.ESCOMP_CC?.avgScore || 0,
 		MI: finalResults?.metrics?.metricsScores?.ESCOMP_MI?.avgScore || 0,
