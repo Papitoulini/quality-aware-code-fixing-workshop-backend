@@ -9,7 +9,7 @@ import multer from "multer";
 import { findSimilarSnippets } from "../utils/index.js";
 import { models } from "#dbs";
 
-const { Question } = models;
+const { Question, FileAnalysis } = models;
 
 const uploadFolderPath = path.join(path.dirname(url.fileURLToPath(import.meta.url)), "..", "assets/uploads");
 
@@ -58,19 +58,15 @@ router.post("/", upload, async (req, res) => {
 		}
 		const question = await Question.findById(questionId);
 
-		console.log(question, isBadExample );
-
-		const results = await findSimilarSnippets(question, model, isBadExample === "true");
+		const snippets = await findSimilarSnippets(question, model, isBadExample === "true");
 
 		const similarSnippets = [];
-		for (const result of results) {
-			const { code } = result;
-			// const { code, scores } = result;
+		for (const snippet of snippets) {
+			const { code, _id } = snippet;
+			const fileAnalysis = await FileAnalysis.findOne({ snippet: _id})
 			similarSnippets.push({
 				code,
-				quality: {
-					// ...scores,
-				},
+				quality: fileAnalysis.analysis,
 			});
 		}
 

@@ -61,7 +61,7 @@ const filterASHpath = (ashPath) => {
 
 const ashAnalysis = (analyzerPath, codePath, resultsPath) => {
 	const command = `"${analyzerPath}" --source-dir "${codePath}" --output-dir "${resultsPath}" --format json --debug`;
-	const { code } = shell.exec(command, { silent: false });
+	const { code } = shell.exec(command, { silent: true });
 
 	if (!(code === 0 || code === 1)) {
 		return { success: false };
