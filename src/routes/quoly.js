@@ -72,7 +72,6 @@ router.post("/", upload, async (req, res) => {
 
 		return res.json({ success: true, similarSnippets });
 	} catch (error) {
-		console.log(error);
 		Sentry.captureException(error);
 		return res.json({ success: false, message: "Something Went Wrong" });
 	}

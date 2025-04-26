@@ -1,4 +1,4 @@
-import fs from "node:fs";
+import fs from "node:fs/promises";
 import path from "node:path";
 import url from "node:url";
 
@@ -11,74 +11,78 @@ import { models } from "#dbs";
 
 const { Snippet, UserResponse } = models;
 
-const uploadFolderPath = path.join(path.dirname(url.fileURLToPath(import.meta.url)), "..", "assets/uploads");
+const uploadRoot = path.join(
+  path.dirname(url.fileURLToPath(import.meta.url)),
+  "..",
+  "assets/uploads"
+);
 
 const storage = multer.diskStorage({
-	destination: (req, _file, cb) => {
-		cb(null, uploadFolderPath);
-	},
-	filename: (req, file, cb) => {
-		req.body.originalName = file.originalname;
+  destination: (_req, _file, cb) => cb(null, uploadRoot),
+  filename: async (req, file, cb) => {
+    const userId = req.body.userId || "unknown";
+    const questionId = req.body.questionId || "unknown";
 
-		let name = file.originalname;
-		name = name.replaceAll(/\s/g, ""); // Replace the special characters
+    // **NEW**: fixed subfolder under each question
+    const subfolder = "analysis";
 
-		const folder = req?.body?.userId || "unknown";
-		const questionFolder = req?.body?.questionId || "unknown";
-		const timestamp = Date.now().toString();
-		const saveName = `${timestamp}-quality-${name}`;
+    // clean up original name
+    const cleanName = file.originalname.replace(/\s+/g, "");
+    const timestamp = Date.now().toString();
+    const saveName = `${timestamp}-quality-${cleanName}`;
 
-		req.body.saveName = saveName;
+    // build the relative path: <userId>/<questionId>/<subfolder>
+    const relDir = path.join(userId, questionId, subfolder);
+    const absDir = path.join(uploadRoot, relDir);
 
-		// Create the folder with the project id if it does not exist
-		try {
-			fs.mkdirSync(path.join(uploadFolderPath, folder, questionFolder), { recursive: true });
-		} catch { /* empty */ }
+    // ensure it exists
+    await fs.mkdir(absDir, { recursive: true });
 
-		// Pass folder to the request body
-		req.body.folder = path.join(folder, questionFolder);
+    // stash for later handlers
+    req.body.saveName = saveName;
+    req.body.folder   = relDir;   // e.g. "123/456/analysis"
 
-		cb(null, path.join(folder, questionFolder, saveName));
-	},
+    // final on‐disk path is <uploadRoot>/<relDir>/<saveName>
+    cb(null, path.join(relDir, saveName));
+  },
 });
 
-const upload = multer({
-	storage,
-	fileFilter: (req, _, cb) => cb(null, true),
-}).fields([
-	{ name: "file", maxCount: 1 },
+const upload = multer({ storage }).fields([
+  { name: "file", maxCount: 1 }
 ]);
 
 const router = express.Router({ mergeParams: true });
 
 router.post("/", upload, async (req, res) => {
-	try {
-		const { saveName, folder, questionId, userId, ...rest } = req.body;
-		if (!saveName) {
-			return res.json({ success: false, message: "File Not Found" });
-		}
+  const { saveName, folder, questionId, userId } = req.body;
+  if (!saveName) {
+    return res.json({ success: false, message: "File Not Found" });
+  }
 
-		const analysisResults = await analyzeFile(path.join(uploadFolderPath, folder), saveName);
+  const folderPath = path.join(uploadRoot, folder)
+  const filePath = path.join(folderPath, saveName);
 
-		const code = fs.readFileSync(path.join(uploadFolderPath, folder, saveName), 'utf8');
+  try {
+    const analysisResults = await analyzeFile(folderPath, saveName);
+    const code = await fs.readFile(filePath, "utf8");
+    const snippet = await Snippet.create({ code, original: false });
+    await UserResponse.create({
+      question: questionId,
+      snippet: snippet._id,
+      user: userId,
+      analysis: analysisResults?.sast?.sast || [],
+    });
 
-		const snippet = await Snippet.create({
-			code,
-			original: false,
-		})
+    // 4) clean up
+	await fs.rm(folderPath, { recursive: true, force: true });
 
-		await UserResponse.create({
-			question: questionId,
-			snippet: snippet._id,
-			user: userId,
-			analysis: analysisResults?.sast?.sast || [],
-		});
-
-		return res.json({ success: true, quality: analysisResults?.sast?.sast || [] });
-	} catch (error) {
-		Sentry.captureException(error);
-		return res.json({ success: false, message: "Something Went Wrong" });
-	}
+    return res.json({ success: true, quality: analysisResults?.sast?.sast || [] });
+  } catch (error) {
+    Sentry.captureException(error);
+    // best effort cleanup
+    try { await fs.rm(folderPath, { recursive: true, force: true }); } catch {}
+    return res.json({ success: false, message: "Something Went Wrong" });
+  }
 });
 
 export default router;
