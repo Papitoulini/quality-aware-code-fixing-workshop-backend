@@ -40,7 +40,7 @@ const storage = multer.diskStorage({
 
 		// stash for later handlers
 		req.body.saveName = saveName;
-		req.body.folder   = relDir;   // e.g. "123/456/analysis"
+		req.body.folder = relDir;   // e.g. "123/456/analysis"
 
 		// final on‐disk path is <uploadRoot>/<relDir>/<saveName>
 		cb(null, path.join(relDir, saveName));
@@ -53,13 +53,12 @@ const upload = multer({ storage }).fields([
 
 const router = express.Router({ mergeParams: true });
 
+// POST: upload and start analysis
 router.post("/", upload, async (req, res) => {
 	const { saveName, folder, questionId, userId } = req.body;
-	if (!saveName) {
-		return res.json({ success: false, message: "File Not Found" });
-	}
+	if (!saveName) return res.json({ success: false, message: "File Not Found" });
 
-	const folderPath = path.join(uploadRoot, folder)
+	const folderPath = path.join(uploadRoot, folder);
 	const filePath = path.join(folderPath, saveName);
 
 	try {
@@ -71,13 +70,14 @@ router.post("/", upload, async (req, res) => {
 			user: userId,
 			status: "inprogress",
 		});
-    
+
 		res.json({ success: true, userResponseId: userResponse._id });
+
 		const analysisResults = await analyzeFile(folderPath, saveName);
 		await UserResponse.findByIdAndUpdate(userResponse._id, {
 			analysis: analysisResults?.sast?.sast || [],
 			status: "completed",
-		})
+		});
 
 		// 4) clean up
 		await fs.rm(folderPath, { recursive: true, force: true });
@@ -90,17 +90,18 @@ router.post("/", upload, async (req, res) => {
 	}
 });
 
+// GET: poll analysis status
 router.get("/:USER_RESPONSE_ID", async (req, res) => {
 	const { USER_RESPONSE_ID } = req.params;
 
 	try {
 		const userResponse = await UserResponse.findById(USER_RESPONSE_ID);
 		if (!userResponse) return res.json({ success: false, message: "User Response Not Found" });
-
 		return res.json({ success: true, status: userResponse.status, quality: userResponse.analysis || [] });
 	} catch (error) {
 		Sentry.captureException(error);
 		return res.json({ success: false, message: "Something Went Wrong" });
 	}
 });
+
 export default router;

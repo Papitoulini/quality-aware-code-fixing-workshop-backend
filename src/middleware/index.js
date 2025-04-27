@@ -1,19 +1,11 @@
-import jwt from "jsonwebtoken";
 import Sentry from "@sentry/node";
 import rateLimit from "express-rate-limit";
-import { Types } from "mongoose";
-
-import { DISABLED_KEY_VERSIONS } from "#utils";
-import { models } from "#dbs";
-
-const { User, Project, Repository } = models;
 
 export const setServerTimeout = (millis = 5 * 60 * 1000) => (req, res, next) => {
 	req.setTimeout(millis, () => res.status(408).json({ message: "Request Timeout" }));
 	res.setTimeout(millis, () => res.status(503).json({ message: "Service Unavailable" }));
 	next();
 };
-
 
 export const limiter = rateLimit({
 	windowMs: 60 * 60 * 1000, // 1 hour
@@ -45,7 +37,6 @@ export const attachFrontend = (req, res, next) => {
 	}
 };
 
-
 // Do not remove unused parameters.
 // Express requires a four-parameter signature to recognize this function as an error handler
 export const captureErrors = (err, req, res, next) => {
@@ -57,4 +48,3 @@ export const captureErrors = (err, req, res, next) => {
 
 	return res.status(500).json({ message: "Something went wrong." });
 };
-
