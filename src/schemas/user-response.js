@@ -8,7 +8,8 @@ const userResponseSchema = new Schema(
 		question: { type: mongoose.Schema.Types.ObjectId, ref: "Question", required: true },
 		snippet: { type: mongoose.Schema.Types.ObjectId, ref: "Snippet" },
 		user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-		analysis: { type: Array, required: true }
+		analysis: { type: Array, required: true },
+		status: { type: String, enum: ["inprogress", "completed"], default: "inprogress" },
 	},
 	{ timestamps: true, strict: false, toObject: { versionKey: false } },
 );
