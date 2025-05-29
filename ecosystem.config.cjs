@@ -5,5 +5,12 @@ module.exports = {
 			script: "npm",
 			args: "start",
 		},
+		{
+            name: "sast-worker",
+            script: "./src/workers/sast-worker.js",
+            env: {
+                NODE_ENV: "production"
+            }
+        }
 	],
 };
