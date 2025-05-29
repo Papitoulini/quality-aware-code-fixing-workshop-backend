@@ -34,13 +34,6 @@ async function processJob(jobData) {
     // Write code to temp file
     await fs.writeFile(tempFile, code, 'utf8');
 
-
-    // Add debugging sleep to pause execution for 1000 seconds
-    console.log(`🔍 [${WORKER_ID}] DEBUG: Sleeping for 1000 seconds. File available at: ${tempFile}`);
-    await new Promise(resolve => setTimeout(resolve, 1000 * 1000));
-    console.log(`🔍 [${WORKER_ID}] DEBUG: Resuming after sleep`);
-
-
     // Run analysis
     console.log(`⚙️ [${WORKER_ID}] Running analysis on file: ${tempFile}`);
     const analysisResults = await analyzeFile(tempDir, fileName);
