@@ -4,6 +4,6 @@ module.exports = {
 			name: "workshop-backend",
 			script: "npm",
 			args: "start",
-		},
+		}
 	],
 };

@@ -1,0 +1,38 @@
+name: ci
+
+on: push
+
+jobs:
+  deploy-backend-and-worker:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd ~/quality-aware-code-fixing-workshop-backend
+            git reset --hard origin/master
+            git pull origin master
+            bash -ci 'npm i'
+            bash -ci 'pm2 restart ecosystem.config.cjs'
+            bash -ci 'pm2 restart ecosystem.worker1.cjs'
+  deploy-worker-2:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd ~/quality-aware-code-fixing-workshop-worker-2
+            git reset --hard origin/master
+            git pull origin master
+            bash -ci 'npm i'
+            bash -ci 'pm2 restart ecosystem.worker2.cjs'

@@ -5,6 +5,7 @@ import url from "node:url";
 import Sentry from "@sentry/node";
 import express from "express";
 import multer from "multer";
+import amqp from "amqplib"; // Add this import for CloudAMQP
 
 import { analyzeFile } from "#utils";
 import { models } from "#dbs";
@@ -53,41 +54,77 @@ const upload = multer({ storage }).fields([
 
 const router = express.Router({ mergeParams: true });
 
+// Add queue connection setup
+const connectToQueue = async () => {
+  try {
+    const connection = await amqp.connect(process.env.CLOUDAMQP_URL);
+    const channel = await connection.createChannel();
+    await channel.assertQueue('analysis_queue', { durable: true });
+    return channel;
+  } catch (error) {
+    Sentry.captureException(error);
+    console.error("Failed to connect to message queue:", error);
+    return null;
+  }
+};
+
 // POST: upload and start analysis
 router.post("/", upload, async (req, res) => {
-	const { saveName, folder, questionId, userId } = req.body;
-	if (!saveName) return res.json({ success: false, message: "File Not Found" });
+  const { saveName, folder, questionId, userId } = req.body;
+  if (!saveName) return res.json({ success: false, message: "File Not Found" });
 
-	const folderPath = path.join(uploadRoot, folder);
-	const filePath = path.join(folderPath, saveName);
+  const folderPath = path.join(uploadRoot, folder);
+  const filePath = path.join(folderPath, saveName);
 
-	try {
-		const code = await fs.readFile(filePath, "utf8");
-		const snippet = await Snippet.create({ code, original: false });
-		const userResponse = await UserResponse.create({
-			question: questionId,
-			snippet: snippet._id,
-			user: userId,
-			status: "inprogress",
-		});
+  try {
+    // Read file content
+    const code = await fs.readFile(filePath, "utf8");
+    
+    // Create snippet and user response in DB
+    const snippet = await Snippet.create({ code, original: false });
+    const userResponse = await UserResponse.create({
+      question: questionId,
+      snippet: snippet._id,
+      user: userId,
+      status: "inprogress",
+    });
 
-		res.json({ success: true, userResponseId: userResponse._id });
+    // Send to queue
+    const channel = await connectToQueue();
+    if (channel) {
+      const queueData = {
+        userResponseId: userResponse._id.toString(),
+        code: code,                // The actual code content for analysis
+        userId: userId,
+        questionId: questionId
+      };
+      
+      channel.sendToQueue(
+        'analysis_queue', 
+        Buffer.from(JSON.stringify(queueData)), 
+        { persistent: true }
+      );
+      
+      // Close channel
+      await channel.close();
+    } else {
+      // If queue connection fails, update status
+      await UserResponse.findByIdAndUpdate(userResponse._id, {
+        status: "failed",
+      });
+    }
 
-		const analysisResults = await analyzeFile(folderPath, saveName);
-		await UserResponse.findByIdAndUpdate(userResponse._id, {
-			analysis: analysisResults?.sast?.sast || [],
-			status: "completed",
-		});
-
-		// 4) clean up
-		await fs.rm(folderPath, { recursive: true, force: true });
-		return;
-	} catch (error) {
-		Sentry.captureException(error);
-		// best effort cleanup
-		try { await fs.rm(folderPath, { recursive: true, force: true }); } catch {}
-		return res.json({ success: false, message: "Something Went Wrong" });
-	}
+    // Clean up files since workers don't need them
+    await fs.rm(folderPath, { recursive: true, force: true });
+    
+    // Respond to client
+    return res.json({ success: true, userResponseId: userResponse._id });
+  } catch (error) {
+    Sentry.captureException(error);
+    // best effort cleanup
+    try { await fs.rm(folderPath, { recursive: true, force: true }); } catch {}
+    return res.json({ success: false, message: "Something Went Wrong" });
+  }
 });
 
 // GET: poll analysis status
